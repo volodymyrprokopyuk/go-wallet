@@ -3,7 +3,7 @@ package key_test
 import (
 	"testing"
 
-	"github.com/volodymyrprokopyuk/solidity-dex/wallet/key"
+	"github.com/volodymyrprokopyuk/go-wallet/key"
 )
 
 func slcEqual(a, b []byte) bool {

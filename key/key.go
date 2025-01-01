@@ -6,7 +6,7 @@ import (
 	"math/big"
 
 	"github.com/dustinxie/ecc"
-	"github.com/volodymyrprokopyuk/solidity-dex/wallet/crypto"
+	"github.com/volodymyrprokopyuk/go-wallet/crypto"
 )
 
 func keyGenerate() (*ecdsa.PrivateKey, error)  {

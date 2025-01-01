@@ -1,4 +1,4 @@
-module github.com/volodymyrprokopyuk/solidity-dex/wallet
+module github.com/volodymyrprokopyuk/go-wallet
 
 go 1.23.4
 

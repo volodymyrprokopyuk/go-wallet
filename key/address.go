@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/volodymyrprokopyuk/solidity-dex/wallet/crypto"
+	"github.com/volodymyrprokopyuk/go-wallet/crypto"
 )
 
 func addressEncode(addr string) string {

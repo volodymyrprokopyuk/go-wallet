@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/volodymyrprokopyuk/solidity-dex/wallet/crypto"
+	"github.com/volodymyrprokopyuk/go-wallet/crypto"
 )
 
 func TestBase58EncDec(t *testing.T) {

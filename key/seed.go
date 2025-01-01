@@ -9,7 +9,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/volodymyrprokopyuk/solidity-dex/wallet/crypto"
+	"github.com/volodymyrprokopyuk/go-wallet/crypto"
 )
 
 const dictPath = "key/dictionary.txt"

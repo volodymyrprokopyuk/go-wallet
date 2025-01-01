@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/volodymyrprokopyuk/solidity-dex/wallet/crypto"
-	"github.com/volodymyrprokopyuk/solidity-dex/wallet/key"
+	"github.com/volodymyrprokopyuk/go-wallet/crypto"
+	"github.com/volodymyrprokopyuk/go-wallet/key"
 )
 
 func walletCmd() *cobra.Command {
