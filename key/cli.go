@@ -65,9 +65,9 @@ func keyDeriveCmd() *cobra.Command {
 func keyAddressCmd() *cobra.Command {
   cmd := &cobra.Command{
     Use: "address",
-    Short: `Derive Ethereum address from a public key
+    Short: `Derive an Ethereum address from a public key
   stdin: a public key in hex
-  stdout: the Ethereum address in hex`,
+  stdout: an Ethereum address in hex`,
     RunE: func(cmd *cobra.Command, args []string) error{
       var pub []byte
       _, err := fmt.Scanf("%x", &pub)
@@ -150,15 +150,35 @@ func AddressCmd() *cobra.Command {
   return cmd
 }
 
+// func addrEncodeCmd() *cobra.Command {
+//   cmd := &cobra.Command{
+//     Use: "encode",
+//     Short: `Encode an Ethereum address (ERC-55)
+//   stdin: an Ethereum address in hex
+//   stdout: the encoded case-sensitive Ethereum address string`,
+//     RunE: func(cmd *cobra.Command, args []string) error {
+//       var addr string
+//       _, err := fmt.Scanf("%s", &addr)
+//       if err != nil {
+//         return err
+//       }
+//       encAddr := addressEncode(addr)
+//       fmt.Printf("%s\n", encAddr)
+//       return nil
+//     },
+//   }
+//   return cmd
+// }
+
 func addrEncodeCmd() *cobra.Command {
   cmd := &cobra.Command{
     Use: "encode",
     Short: `Encode an Ethereum address (ERC-55)
-  stdin: an address in hex
-  stdout: the encoded address in hex`,
+  stdin: an Ethereum address in hex
+  stdout: the encoded case-sensitive Ethereum address string`,
     RunE: func(cmd *cobra.Command, args []string) error {
-      var addr string
-      _, err := fmt.Scanf("%s", &addr)
+      var addr []byte
+      _, err := fmt.Scanf("%x", &addr)
       if err != nil {
         return err
       }
@@ -173,8 +193,8 @@ func addrEncodeCmd() *cobra.Command {
 func addrVerifyCmd() *cobra.Command {
   cmd := &cobra.Command{
     Use: "verify",
-    Short: `Verify an encoded Ethereum address (ERC-55)
-  stdin: an encoded address in hex
+    Short: `Verify an encoded case-sensitive Ethereum address (ERC-55)
+  stdin: an encoded case-sensitive Ethereum address string
   stdout: true if the address is valid, false otherwise`,
     RunE: func(cmd *cobra.Command, args []string) error {
       var addr string

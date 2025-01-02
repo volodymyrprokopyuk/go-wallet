@@ -66,9 +66,9 @@ func seedGenerage(bits int, seed []byte) (string, error) {
   wordIdx := make([]uint16, wordLen)
   for i := range len(wordIdx) {
     if i > 0 {
-      seed = Shl(seed, 11)
+      seed = crypto.Shl(seed, 11)
     }
-    seg := Shr(seed[:2], 5)
+    seg := crypto.Shr(seed[:2], 5)
     idx := binary.BigEndian.Uint16(seg)
     wordIdx[i] = idx
   }
@@ -107,7 +107,7 @@ func seedVerify(mnemonic string) error {
     seg := make([]byte, 2)
     binary.BigEndian.PutUint16(seg, wordIdx[i])
     seed = append(seg, seed...)
-    seed = Shl(seed, 5)
+    seed = crypto.Shl(seed, 5)
   }
   seedLen := 4 * wordLen / 3 // in bytes
   checkLen := wordLen / 3 // in bits

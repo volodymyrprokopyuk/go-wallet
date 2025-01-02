@@ -1,4 +1,4 @@
-package key
+package crypto
 
 func shl8(bs []byte, n int) []byte {
   sh := make([]byte, len(bs))

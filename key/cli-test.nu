@@ -19,11 +19,11 @@ def "test key generate" [] {
 }
 
 def "test key derive" [] {
-  let prvPEM = openssl ecparam -genkey -name secp256k1 -noout
-  let pubPEM = $prvPEM | openssl ec -pubout
+  let pemPrv = openssl ecparam -genkey -name secp256k1 -noout
+  let pemPub = $pemPrv | openssl ec -pubout
   let exp = {
-    prv: ($prvPEM | openssl ec -text -noout | parse-key "priv:")
-    pub: ($pubPEM | openssl ec -text -noout -pubin | parse-key "pub:"
+    prv: ($pemPrv | openssl ec -text -noout | parse-key "priv:")
+    pub: ($pemPub | openssl ec -text -noout -pubin | parse-key "pub:"
       | str substring 2..129)
   }
   let key = $exp.prv | wallet key derive | from yaml
@@ -47,7 +47,10 @@ def "test key address" [] {
 def "test address encode" [] {
   let cases = [[exp];
     ["9cea81B9D2E900d6027125378ee2ddfA15FeEED1"],
-    ["75D28c27aC5C5de118508fee2d14ef5FB04c5435"]
+    ["75D28c27aC5C5de118508fee2d14ef5FB04c5435"],
+    ["5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"],
+    ["8617E340B3D01FA5F11F306F4090FD50E238070D"],
+    ["27b1fdb04752bbc536007a920d24acb045561c26"]
   ]
   $cases | each {|c|
     let addr = $c.exp | str downcase | wallet address encode
