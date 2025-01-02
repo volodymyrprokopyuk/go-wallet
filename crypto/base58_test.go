@@ -20,7 +20,7 @@ func TestBase58EncDec(t *testing.T) {
     }
     got, err := crypto.Base58Dec(str)
     if err != nil {
-      t.Fatal(err.Error())
+      t.Fatal(err)
     }
     if got.Cmp(num) != 0 {
       t.Errorf("invalid base58 decode: expected %v, got %v", num, got)

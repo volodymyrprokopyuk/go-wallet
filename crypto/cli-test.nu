@@ -40,7 +40,7 @@ def "test mac hmac-sha512" [] {
   $cases | each {|c|
     let mac = $c.data | wallet mac hmac-sha512 --key $c.key
     assert equal $mac $c.exp
-    let exp = $c.data | openssl dgst -sha512 -hmac $c.key -binary
+    let exp = $c.data | openssl dgst -hmac $c.key -sha512 -binary
       | encode hex --lower
     assert equal $mac $exp
   }
@@ -55,10 +55,8 @@ def "test kdf pbkdf2-sha512" [] {
     let key = $c.pass | (wallet kdf pbkdf2-sha512 --salt $c.salt
       --iter $c.iter --keylen $c.keyLen)
     assert equal $key $c.exp
-    let pass = $c.pass | encode hex --lower
-    let salt = $c.salt | encode hex --lower
     let exp = (openssl kdf -kdfopt digest:sha512 -kdfopt iter:($c.iter)
-      -kdfopt hexpass:($pass) -kdfopt hexsalt:($salt)
+      -kdfopt pass:($c.pass) -kdfopt salt:($c.salt)
       -keylen $c.keyLen -binary pbkdf2) | encode hex --lower
     assert equal $key $exp
   }

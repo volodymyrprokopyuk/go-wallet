@@ -9,7 +9,7 @@ import (
 func walletCmd() *cobra.Command {
   cmd := &cobra.Command{
     Use: "wallet",
-    Short: "sha256, keccak256, hmac-sha512, EC key pairs",
+    Short: "EC key pairs, HD wallet, cryptographic functions",
     Version: "0.1.0",
     SilenceUsage: true,
     SilenceErrors: true,

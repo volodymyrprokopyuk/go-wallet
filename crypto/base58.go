@@ -12,7 +12,7 @@ const alpha58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
 var digit58 = func() map[uint8]int64 {
   m := make(map[uint8]int64)
-  for i := 0; i < len(alpha58); i++ {
+  for i := range alpha58 {
     m[alpha58[i]] = int64(i)
   }
   return m
@@ -43,13 +43,13 @@ func Base58Enc(num *big.Int) string {
 
 func Base58Dec(str string) (*big.Int, error) {
   if len(str) == 0 {
-    return nil, fmt.Errorf("empty base58 encoded string")
+    return nil, fmt.Errorf("base58 decode: empty encoded string")
   }
   num, base58 := big.NewInt(0), big.NewInt(58)
   for i := 0; i < len(str); i ++ {
     digit, exist := digit58[str[i]]
     if !exist {
-      return nil, fmt.Errorf("invalid base58 digit: %c", str[i])
+      return nil, fmt.Errorf("base58 decode: invalid digit: %c", str[i])
     }
     num.Mul(num, base58)
     num.Add(num, big.NewInt(digit))
@@ -59,30 +59,33 @@ func Base58Dec(str string) (*big.Int, error) {
 
 func Base58CheckEnc(num *big.Int) string {
   data := num.Bytes()
-  checksum := SHA256(SHA256(data))[:4]
-  data = append(data, checksum...)
+  csum := SHA256(SHA256(data))[:4]
+  data = append(data, csum...)
   num = new(big.Int).SetBytes(data)
   str := Base58Enc(num)
   return str
 }
 
 func Base58CheckDec(str string) (*big.Int, error) {
+  if len(str) < 7 {
+    return nil, fmt.Errorf("base58check decode: too short string: %s", str)
+  }
   num, err := Base58Dec(str)
   if err != nil {
     return nil, err
   }
   data := num.Bytes()
   l := len(data) - 4
-  data, checksum := data[:l], data[l:]
+  data, csum := data[:l], data[l:]
   hash := SHA256(SHA256(data))
-  if !bytes.Equal(hash[:4], checksum) {
-    return nil, fmt.Errorf("invalid base58check checksum")
+  if !bytes.Equal(hash[:4], csum) {
+    return nil, fmt.Errorf("base58check decode: invalid checksum")
   }
   num = new(big.Int).SetBytes(data)
   return num, nil
 }
 
-var reLeadZero = regexp.MustCompile(`0+`)
+var reLeadZero = regexp.MustCompile(`^0+`)
 
 func Base58CheckEncHex(hex []byte) string {
   num := new(big.Int).SetBytes(hex)
