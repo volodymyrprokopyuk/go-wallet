@@ -1,36 +1,36 @@
 package key
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"fmt"
 	"io"
 	"os"
 
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v3"
 )
 
 func formatKey(key *ecdsa.PrivateKey) string {
   return fmt.Sprintf("{prv: %064x, pub: %064x%064x}", key.D, key.X, key.Y)
 }
 
-func KeyCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "key",
-    Short: "Generate a secp256k1 key pair, sign a message, verify a signature",
+func KeyCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "key",
+    Usage: "Generate a secp256k1 key pair, sign a message, verify a signature",
+    Commands: []*cli.Command{
+      keyGenerateCmd(), keyDeriveCmd(), keyAddressCmd(),
+    },
   }
-  cmd.AddCommand(
-    keyGenerateCmd(), keyDeriveCmd(), keyAddressCmd(),
-    // signCmd(), verifyCmd(),
-  );
   return cmd
 }
 
-func keyGenerateCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "generate",
-    Short: `Generate a secp256k1 key pair
+func keyGenerateCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "generate",
+    Usage: `Generate a secp256k1 key pair
   stdout: a key pair in hex in yaml {prv, pub}`,
-    RunE: func(cmd *cobra.Command, args []string) error {
+    Action: func(ctx context.Context, cmd *cli.Command) error {
       key, err := keyGenerate()
       if err != nil {
         return err
@@ -42,13 +42,13 @@ func keyGenerateCmd() *cobra.Command {
   return cmd
 }
 
-func keyDeriveCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "derive",
-    Short: `Derive a secp256k1 public key from an external private key
+func keyDeriveCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "derive",
+    Usage: `Derive a secp256k1 public key from an external private key
   stdin: an external private key in hex
   stdout: a key pair in hex in yaml {prv, pub}`,
-    RunE: func(cmd *cobra.Command, args []string) error {
+    Action: func(ctx context.Context, cmd *cli.Command) error {
       var prv []byte
       _, err := fmt.Scanf("%x", &prv)
       if err != nil {
@@ -62,13 +62,13 @@ func keyDeriveCmd() *cobra.Command {
   return cmd
 }
 
-func keyAddressCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "address",
-    Short: `Derive an Ethereum address from a public key
+func keyAddressCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "address",
+    Usage: `Derive an Ethereum address from a public key
   stdin: a public key in hex
   stdout: an Ethereum address in hex`,
-    RunE: func(cmd *cobra.Command, args []string) error{
+    Action: func(ctx context.Context, cmd *cli.Command) error {
       var pub []byte
       _, err := fmt.Scanf("%x", &pub)
       if err != nil {
@@ -141,22 +141,24 @@ func keyAddressCmd() *cobra.Command {
 //   return cmd
 // }
 
-func AddressCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "address",
-    Short: "Encode and verify an Ethereum address (ERC-55)",
+func AddressCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "address",
+    Usage: "Encode and verify an Ethereum address (ERC-55)",
+    Commands: []*cli.Command{
+      addressEncodeCmd(), addressVerifyCmd(),
+    },
   }
-  cmd.AddCommand(addressEncodeCmd(), addressVerifyCmd())
   return cmd
 }
 
-func addressEncodeCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "encode",
-    Short: `Encode an Ethereum address (ERC-55)
+func addressEncodeCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "encode",
+    Usage: `Encode an Ethereum address (ERC-55)
   stdin: an Ethereum address in hex
-  stdout: the encoded case-sensitive Ethereum address string`,
-    RunE: func(cmd *cobra.Command, args []string) error {
+  stdout: an encoded case-sensitive Ethereum address string`,
+    Action: func(ctx context.Context, cmd *cli.Command) error {
       var addr []byte
       _, err := fmt.Scanf("%x", &addr)
       if err != nil {
@@ -170,13 +172,13 @@ func addressEncodeCmd() *cobra.Command {
   return cmd
 }
 
-func addressVerifyCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "verify",
-    Short: `Verify an encoded case-sensitive Ethereum address (ERC-55)
+func addressVerifyCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "verify",
+    Usage: `Verify an encoded case-sensitive Ethereum address (ERC-55)
   stdin: an encoded case-sensitive Ethereum address string
   stdout: true if the address is valid, false otherwise`,
-    RunE: func(cmd *cobra.Command, args []string) error {
+    Action: func(ctx context.Context, cmd *cli.Command) error {
       var addr string
       _, err := fmt.Scanf("%s", &addr)
       if err != nil {
@@ -195,77 +197,82 @@ func addressVerifyCmd() *cobra.Command {
   return cmd
 }
 
-func MnemonicCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "mnemonic",
-    Short: "Generate, derive, and verify a mnemonic",
+func MnemonicCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "mnemonic",
+    Usage: "Generate, derive, and verify a mnemonic",
+    Commands: []*cli.Command{
+      mnemonicGenerateCmd(), mnemonicDeriveCmd(), mnemonicVerifyCmd(),
+    },
   }
-  cmd.AddCommand(
-    mnemonicGenerateCmd(), mnemonicDeriveCmd(), mnemonicVerifyCmd(),
-    seedDeriveCmd(),
-  )
   return cmd
 }
 
-func mnemonicGenerateCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "generate",
-    Short: `Generate a mnemonic that encodes a randomly generated seed (BIP-39)
+func mnemonicGenerateCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "generate",
+    Usage: `Generate a mnemonic that encodes a randomly generated seed (BIP-39)
   stdout: a mnemonic string that encodes the randomly generated seed`,
-    RunE: func(cmd *cobra.Command, args []string) error {
-      bits, _ := cmd.Flags().GetInt("bits")
-      mnemonic, err := mnemonicGenerate(bits)
+    Action: func(ctx context.Context, cmd *cli.Command) error {
+      bits := cmd.Int("bits")
+      mnem, err := mnemonicGenerate(int(bits))
       if err != nil {
         return err
       }
-      fmt.Printf("%s\n", mnemonic)
+      fmt.Printf("%s\n", mnem)
       return nil
     },
   }
-  cmd.Flags().Int("bits", 0, "a seed length in bits")
-  _ = cmd.MarkFlagRequired("bits")
+  cmd.Flags = []cli.Flag{
+    &cli.IntFlag{
+      Name: "bits", Usage: "a seed length in bits", Required: true,
+    },
+  }
   return cmd
 }
 
-func mnemonicDeriveCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "derive",
-    Short: `Derive a mnemonic that encodes an externally provided seed (BIP-39)
-  stdout: a mnemonic string that encodes the externally provided seed`,
-    RunE: func(cmd *cobra.Command, args []string) error {
-      bits, _ := cmd.Flags().GetInt("bits")
+func mnemonicDeriveCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "derive",
+    Usage: `Derive a mnemonic that encodes an external seed (BIP-39)
+  stdout: a mnemonic string that encodes the external seed`,
+    Action: func(ctx context.Context, cmd *cli.Command) error {
+      bits := cmd.Int("bits")
       var seed []byte
       _, err := fmt.Scanf("%x", &seed)
       if err != nil {
         return err
       }
-      mnemonic, err := mnemonicDerive(bits, seed)
+      mnem, err := mnemonicDerive(int(bits), seed)
       if err != nil {
         return err
       }
-      fmt.Printf("%s\n", mnemonic)
+      fmt.Printf("%s\n", mnem)
       return nil
     },
   }
-  cmd.Flags().Int("bits", 0, "a seed length in bits")
-  _ = cmd.MarkFlagRequired("bits")
+  cmd.Flags = []cli.Flag{
+    &cli.IntFlag{
+      Name: "bits", Usage: "a seed length in bits", Required: true,
+    },
+  }
   return cmd
 }
 
-func mnemonicVerifyCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "verify",
-    Short: `Verify a mnemonic string against the embedded checksum
+func mnemonicVerifyCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "verify",
+    Usage: `Verify a mnemonic string against the embedded checksum
   stdin: a mnemonic string
   stdout: true if the mnemonic is valid, false otherwise`,
-    RunE: func(cmd *cobra.Command, args []string) error {
-      var mnemonic []byte
-      mnemonic, err := io.ReadAll(os.Stdin)
+    Action: func(ctx context.Context, cmd *cli.Command) error {
+      var mnem []byte
+      mnem, err := io.ReadAll(os.Stdin)
       if err != nil {
         return err
       }
       valid := true
-      err = mnemonicVerify(string(mnemonic))
+      err = mnemonicVerify(string(mnem))
       if err != nil {
         fmt.Fprintf(os.Stderr, "%s\n", err)
         valid = false
@@ -277,33 +284,39 @@ func mnemonicVerifyCmd() *cobra.Command {
   return cmd
 }
 
-func SeedCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "seed",
-    Short: "Derive a seed from a mnemonic and an optional passphrase",
+func SeedCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "seed",
+    Usage: "Derive a seed from a mnemonic and an optional passphrase",
+    Commands: []*cli.Command{
+      seedDeriveCmd(),
+    },
   }
-  cmd.AddCommand(seedDeriveCmd())
   return cmd
 }
 
-func seedDeriveCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "derive",
-    Short: `Derive a seed from a mnemonic string and and optional passphrase
+func seedDeriveCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "derive",
+    Usage: `Derive a seed from a mnemonic string and an optional passphrase
   stdin: a mnemonic string
   stdout: a seed in hex`,
-    RunE: func(cmd *cobra.Command, args []string) error {
-      passphrase, _ := cmd.Flags().GetString("passphrase")
-      var mnemonic []byte
-      mnemonic, err := io.ReadAll(os.Stdin)
+    Action: func(ctx context.Context, cmd *cli.Command) error {
+      pass := cmd.String("passphrase")
+      var mnem []byte
+      mnem, err := io.ReadAll(os.Stdin)
       if err != nil {
         return err
       }
-      seed := seedDerive(string(mnemonic), passphrase)
+      seed := seedDerive(string(mnem), pass)
       fmt.Printf("%x\n", seed)
       return nil
     },
   }
-  cmd.Flags().String("passphrase", "", "a passphrase string")
+  cmd.Flags = []cli.Flag{
+    &cli.StringFlag{
+      Name: "passphrase", Usage: "a passphrase string",
+    },
+  }
   return cmd
 }
