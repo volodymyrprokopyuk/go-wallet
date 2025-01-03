@@ -1,29 +1,21 @@
 package crypto
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v3"
 )
 
-func HashCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "hash",
-    Short: "Produce a sha256, keccak256 digest",
-  }
-  cmd.AddCommand(sha256Cmd(), keccak256Cmd())
-  return cmd
-}
-
-func sha256Cmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "sha256",
-    Short: `Produce a sha256 digest
+func SHA256Cmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "sha256",
+    Usage:  `Produce a sha256 digest
   stdin: data bytes
   stdout: a sha256 digest in hex`,
-    RunE: func(cmd *cobra.Command, args []string) error {
+    Action: func(ctx context.Context, cmd *cli.Command) error {
       data, err := io.ReadAll(os.Stdin)
       if err != nil {
         return err
@@ -36,13 +28,13 @@ func sha256Cmd() *cobra.Command {
   return cmd
 }
 
-func keccak256Cmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "keccak256",
-    Short: `Produce a keccak256 digest
+func Keccak256Cmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "keccak256",
+    Usage: `Produce a keccak256 digest
   stdin: data bytes
   sotout: a keccak256 digest in hex`,
-    RunE: func(cmd *cobra.Command, args []string) error {
+    Action: func(ctx context.Context, cmd *cli.Command) error {
       data, err := io.ReadAll(os.Stdin)
       if err != nil {
         return err
@@ -55,23 +47,14 @@ func keccak256Cmd() *cobra.Command {
   return cmd
 }
 
-func MACCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "mac",
-    Short: "Produce a hmac-sha512 authenticated digest",
-  }
-  cmd.AddCommand(hmacSHA512Cmd())
-  return cmd
-}
-
-func hmacSHA512Cmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "hmac-sha512",
-    Short: `Produce a hmac-sha512 digest using an authenticating key
+func HMACSHA512Cmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "hmac-sha512",
+    Usage: `Produce a hmac-sha512 digest using an authenticating key
   stdin: data bytes
   stdout: a hmac-sha512 digest in hex authenticated with the key`,
-    RunE: func(cmd *cobra.Command, args []string) error {
-      key, _ := cmd.Flags().GetString("key")
+    Action: func(ctx context.Context, cmd *cli.Command) error {
+      key := cmd.String("key")
       data, err := io.ReadAll(os.Stdin)
       if err != nil {
         return err
@@ -81,64 +64,65 @@ func hmacSHA512Cmd() *cobra.Command {
       return nil
     },
   }
-  cmd.Flags().String("key", "", "an authenticating key bytes")
-  _ = cmd.MarkFlagRequired("key")
-  return cmd
-}
-
-func KDFCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "kdf",
-    Short: "Derive a pbkdf2-sha512 key",
+  cmd.Flags = []cli.Flag{
+    &cli.StringFlag{
+      Name: "key", Usage: "an authenticating key bytes", Required: true,
+    },
   }
-  cmd.AddCommand(pbkdf2SHA512Cmd())
   return cmd
 }
 
-func pbkdf2SHA512Cmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "pbkdf2-sha512",
-    Short: `Derive a pbkdf2-sha512 key
+func PBKDF2SHA512Cmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "pbkdf2-sha512",
+    Usage: `Derive a pbkdf2-sha512 key from a password
   stdin: a password bytes
   stdout: a pbkdf-sha512 key in hex`,
-    RunE: func(cmd *cobra.Command, args []string) error {
-      salt, _ := cmd.Flags().GetString("salt")
-      iter, _ := cmd.Flags().GetInt("iter")
-      keyLen, _ := cmd.Flags().GetInt("keylen")
+    Action: func(ctx context.Context, cmd *cli.Command) error {
+      salt := cmd.String("salt")
+      iter := cmd.Int("iter")
+      keyLen := cmd.Int("keylen")
       pass, err := io.ReadAll(os.Stdin)
       if err != nil {
         return err
       }
-      key := PBKDF2SHA512(pass, []byte(salt), iter, keyLen)
+      key := PBKDF2SHA512(pass, []byte(salt), int(iter), int(keyLen))
       fmt.Printf("%x\n", key)
       return nil
     },
   }
-  cmd.Flags().String("salt", "", "a salt bytes")
-  _ = cmd.MarkFlagRequired("salt")
-  cmd.Flags().Int("iter", 0, "a number of SHA512 iterations")
-  _ = cmd.MarkFlagRequired("iter")
-  cmd.Flags().Int("keylen", 0, "a length of the derived key")
-  _ = cmd.MarkFlagRequired("keylen")
-  return cmd
-}
-
-func Base58CheckCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "base58check",
-    Short: "Encode and decode base58check",
+  cmd.Flags = []cli.Flag{
+    &cli.StringFlag{
+      Name: "salt", Usage: "a salt bytes", Required: true,
+    },
+    &cli.IntFlag{
+      Name: "iter", Usage: "a number of SHA512 iterations", Required: true,
+    },
+    &cli.IntFlag{
+      Name: "keylen", Usage: "a length of the derived key", Required: true,
+    },
   }
-  cmd.AddCommand(base58CheckEncCmd(), base58CheckDecCmd())
   return cmd
 }
 
-func base58CheckEncCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "encode",
-    Short: `Encode base58check
+func Base58CheckCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "base58c",
+    Usage: "Encode and decode base58check",
+    Commands: []*cli.Command{
+      base58CheckEncCmd(), base58CheckDecCmd(),
+    },
+  }
+  return cmd
+}
+
+func base58CheckEncCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "encode",
+    Usage: `Encode base58check
   stdin: a large number in hex
   stdout: a base58check encoded string`,
-    RunE: func(cmd *cobra.Command, args []string) error {
+    Action: func(ctx context.Context, cmd *cli.Command) error {
       var num []byte
       _, err := fmt.Scanf("%x", &num)
       if err != nil {
@@ -152,13 +136,13 @@ func base58CheckEncCmd() *cobra.Command {
   return cmd
 }
 
-func base58CheckDecCmd() *cobra.Command {
-  cmd := &cobra.Command{
-    Use: "decode",
-    Short: `Decode base58check
+func base58CheckDecCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "decode",
+    Usage: `Decode base58check
   stdin: a base58check encoded string
   stdout: a large number in hex`,
-    RunE: func(cmd *cobra.Command, args []string) error {
+    Action: func(ctx context.Context, cmd *cli.Command) error {
       var str string
       _, err := fmt.Scanf("%s", &str)
       if err != nil {

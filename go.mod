@@ -5,6 +5,7 @@ go 1.23.4
 require (
 	github.com/dustinxie/ecc v0.0.0-20210511000915-959544187564
 	github.com/spf13/cobra v1.8.1
+	github.com/urfave/cli/v3 v3.0.0-beta1
 	golang.org/x/crypto v0.31.0
 )
 

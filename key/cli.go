@@ -150,26 +150,6 @@ func AddressCmd() *cobra.Command {
   return cmd
 }
 
-// func addrEncodeCmd() *cobra.Command {
-//   cmd := &cobra.Command{
-//     Use: "encode",
-//     Short: `Encode an Ethereum address (ERC-55)
-//   stdin: an Ethereum address in hex
-//   stdout: the encoded case-sensitive Ethereum address string`,
-//     RunE: func(cmd *cobra.Command, args []string) error {
-//       var addr string
-//       _, err := fmt.Scanf("%s", &addr)
-//       if err != nil {
-//         return err
-//       }
-//       encAddr := addressEncode(addr)
-//       fmt.Printf("%s\n", encAddr)
-//       return nil
-//     },
-//   }
-//   return cmd
-// }
-
 func addressEncodeCmd() *cobra.Command {
   cmd := &cobra.Command{
     Use: "encode",
