@@ -71,50 +71,58 @@ def "test address verify" [] {
   }
 }
 
-let seeds = [[seed, bits, mnemonic];
+let seeds = [[seed, bits, mnem];
   ["0c1e24e5917779d297e14d45f14e1a1a", 128,
    "army van defense carry jealous true garbage claim echo media make crunch"],
   ["2041546864449caff939d32d574753fe684d3c947c3346713dd8423e74abcf8c", 256,
    "cake apple borrow silk endorse fitness top denial coil riot stay wolf luggage oxygen faint major edit measure invite love trap field dilemma oblige"]
 ]
 
-def "test seed generate" [] {
-  let cases = [[seed, bits, exp];
-    [$seeds.0.seed, $seeds.0.bits, $seeds.0.mnemonic],
-    [$seeds.1.seed, $seeds.1.bits, $seeds.1.mnemonic]
-  ]
-  $cases | each {|c|
-    let mnemonic = $c.seed | wallet seed generate --bits $c.bits --stdin
-    assert equal $mnemonic $c.exp
+def "test mnemonic generate" [] {
+  [128, 160, 192, 224, 256] | each {|bits|
+    let mnem = wallet mnemonic generate --bits $bits
+    let valid = $mnem | wallet mnemonic verify | into bool
+    assert equal $valid true
   }
 }
 
-def "test seed verify" [] {
-  let cases = [[mnemonic, exp];
-    [$seeds.0.mnemonic, true],
-    [($seeds.0.mnemonic | str replace "true" "van"), false],
-    [$seeds.1.mnemonic, true],
-    [($seeds.1.mnemonic | str replace "top" "van"), false]
+def "test mnemonic derive" [] {
+  let cases = [[seed, bits, exp];
+    [$seeds.0.seed, $seeds.0.bits, $seeds.0.mnem],
+    [$seeds.1.seed, $seeds.1.bits, $seeds.1.mnem]
   ]
   $cases | each {|c|
-    let valid = $c.mnemonic | wallet seed verify | into bool
+    let mnem = $c.seed | wallet mnemonic derive --bits $c.bits
+    assert equal $mnem $c.exp
+  }
+}
+
+def "test mnemonic verify" [] {
+  let cases = [[mnem, exp];
+    [$seeds.0.mnem, true],
+    [($seeds.0.mnem | str replace "true" "van"), false],
+    [$seeds.1.mnem, true],
+    [($seeds.1.mnem | str replace "top" "van"), false]
+  ]
+  $cases | each {|c|
+    let valid = $c.mnem | wallet mnemonic verify | into bool
     assert equal $valid $c.exp
   }
 }
 
 def "test seed derive" [] {
-  let cases = [[mnemonic, passphrase, exp];
-    [$seeds.0.mnemonic, "",
+  let cases = [[mnem, pass, exp];
+    [$seeds.0.mnem, "",
      "5b56c417303faa3fcba7e57400e120a0ca83ec5a4fc9ffba757fbe63fbd77a89a1a3be4c67196f57c39a88b76373733891bfaba16ed27a813ceed498804c0570"],
-    [$seeds.0.mnemonic, "passphrase",
+    [$seeds.0.mnem, "passphrase",
      "a72c0c6976113d8fff342a96041d68e1a8f79a465ae8aa980aba349339965cb8e068a3945a90e7ee9cda6a5d9b3a1df317afb0a73a9c50c7fbe0a514a6fa651d"],
-    [$seeds.1.mnemonic, "",
+    [$seeds.1.mnem, "",
      "3269bce2674acbd188d4f120072b13b088a0ecf87c6e4cae41657a0bb78f5315b33b3a04356e53d062e55f1e0deaa082df8d487381379df848a6ad7e98798404"]
-    [$seeds.1.mnemonic, "passphrase",
+    [$seeds.1.mnem, "passphrase",
      "575385ded4e59bcb0dff46d376faf9d6839eecfde301a3e0f5065d417162a011d3fdb8f1371ea33db10222e5c0d34afd5e0050ff230302411d7f250f71f642b3"]
   ]
   $cases | each {|c|
-    let seed = $c.mnemonic | wallet seed derive --passphrase $c.passphrase
+    let seed = $c.mnem | wallet seed derive --passphrase $c.pass
     assert equal $seed $c.exp
   }
 }
@@ -126,8 +134,10 @@ test key address
 test address encode
 test address verify
 
-test seed generate
-test seed verify
+test mnemonic generate
+test mnemonic derive
+test mnemonic verify
+
 test seed derive
 
 print success

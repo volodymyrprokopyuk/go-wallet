@@ -146,7 +146,7 @@ func AddressCmd() *cobra.Command {
     Use: "address",
     Short: "Encode and verify an Ethereum address (ERC-55)",
   }
-  cmd.AddCommand(addrEncodeCmd(), addrVerifyCmd())
+  cmd.AddCommand(addressEncodeCmd(), addressVerifyCmd())
   return cmd
 }
 
@@ -170,7 +170,7 @@ func AddressCmd() *cobra.Command {
 //   return cmd
 // }
 
-func addrEncodeCmd() *cobra.Command {
+func addressEncodeCmd() *cobra.Command {
   cmd := &cobra.Command{
     Use: "encode",
     Short: `Encode an Ethereum address (ERC-55)
@@ -190,7 +190,7 @@ func addrEncodeCmd() *cobra.Command {
   return cmd
 }
 
-func addrVerifyCmd() *cobra.Command {
+func addressVerifyCmd() *cobra.Command {
   cmd := &cobra.Command{
     Use: "verify",
     Short: `Verify an encoded case-sensitive Ethereum address (ERC-55)
@@ -215,32 +215,26 @@ func addrVerifyCmd() *cobra.Command {
   return cmd
 }
 
-func SeedCmd() *cobra.Command {
+func MnemonicCmd() *cobra.Command {
   cmd := &cobra.Command{
-    Use: "seed",
-    Short: "Generate, recover, derive seed",
+    Use: "mnemonic",
+    Short: "Generate, derive, and verify a mnemonic",
   }
-  cmd.AddCommand(seedGenerateCmd(), seedVerifyCmd(), seedDeriveCmd())
+  cmd.AddCommand(
+    mnemonicGenerateCmd(), mnemonicDeriveCmd(), mnemonicVerifyCmd(),
+    seedDeriveCmd(),
+  )
   return cmd
 }
 
-func seedGenerateCmd() *cobra.Command {
+func mnemonicGenerateCmd() *cobra.Command {
   cmd := &cobra.Command{
     Use: "generate",
-    Short: `Generate a random seed and encode it into a mnemonic (BIP-39)
-  stdin: a optional randomly generated seed in hex if --stdin
-  stdout: a generated or received seed encoded into a mnemonic string`,
+    Short: `Generate a mnemonic that encodes a randomly generated seed (BIP-39)
+  stdout: a mnemonic string that encodes the randomly generated seed`,
     RunE: func(cmd *cobra.Command, args []string) error {
       bits, _ := cmd.Flags().GetInt("bits")
-      stdin, _ := cmd.Flags().GetBool("stdin")
-      var seed []byte
-      if stdin {
-        _, err := fmt.Scanf("%x", &seed)
-        if err != nil {
-          return err
-        }
-      }
-      mnemonic, err := seedGenerage(bits, seed)
+      mnemonic, err := mnemonicGenerate(bits)
       if err != nil {
         return err
       }
@@ -250,14 +244,38 @@ func seedGenerateCmd() *cobra.Command {
   }
   cmd.Flags().Int("bits", 0, "a seed length in bits")
   _ = cmd.MarkFlagRequired("bits")
-  cmd.Flags().Bool("stdin", false, "receive a random seed from the stdin")
   return cmd
 }
 
-func seedVerifyCmd() *cobra.Command {
+func mnemonicDeriveCmd() *cobra.Command {
+  cmd := &cobra.Command{
+    Use: "derive",
+    Short: `Derive a mnemonic that encodes an externally provided seed (BIP-39)
+  stdout: a mnemonic string that encodes the externally provided seed`,
+    RunE: func(cmd *cobra.Command, args []string) error {
+      bits, _ := cmd.Flags().GetInt("bits")
+      var seed []byte
+      _, err := fmt.Scanf("%x", &seed)
+      if err != nil {
+        return err
+      }
+      mnemonic, err := mnemonicDerive(bits, seed)
+      if err != nil {
+        return err
+      }
+      fmt.Printf("%s\n", mnemonic)
+      return nil
+    },
+  }
+  cmd.Flags().Int("bits", 0, "a seed length in bits")
+  _ = cmd.MarkFlagRequired("bits")
+  return cmd
+}
+
+func mnemonicVerifyCmd() *cobra.Command {
   cmd := &cobra.Command{
     Use: "verify",
-    Short: `Verify a mnemonic string against the checksum
+    Short: `Verify a mnemonic string against the embedded checksum
   stdin: a mnemonic string
   stdout: true if the mnemonic is valid, false otherwise`,
     RunE: func(cmd *cobra.Command, args []string) error {
@@ -267,7 +285,7 @@ func seedVerifyCmd() *cobra.Command {
         return err
       }
       valid := true
-      err = seedVerify(string(mnemonic))
+      err = mnemonicVerify(string(mnemonic))
       if err != nil {
         fmt.Fprintf(os.Stderr, "%s\n", err)
         valid = false
@@ -279,10 +297,19 @@ func seedVerifyCmd() *cobra.Command {
   return cmd
 }
 
+func SeedCmd() *cobra.Command {
+  cmd := &cobra.Command{
+    Use: "seed",
+    Short: "Derive a seed from a mnemonic and an optional passphrase",
+  }
+  cmd.AddCommand(seedDeriveCmd())
+  return cmd
+}
+
 func seedDeriveCmd() *cobra.Command {
   cmd := &cobra.Command{
     Use: "derive",
-    Short: `Derive a seed from a mnemonic string
+    Short: `Derive a seed from a mnemonic string and and optional passphrase
   stdin: a mnemonic string
   stdout: a seed in hex`,
     RunE: func(cmd *cobra.Command, args []string) error {
@@ -297,6 +324,6 @@ func seedDeriveCmd() *cobra.Command {
       return nil
     },
   }
-  cmd.Flags().String("passphrase", "", "a passphrase")
+  cmd.Flags().String("passphrase", "", "a passphrase string")
   return cmd
 }
