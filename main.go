@@ -19,7 +19,7 @@ func walletCmd() *cli.Command {
       // EC key pairs, ECDSA sign and verify, Ethereum address
       key.KeyCmd(), key.AddressCmd(),
       // HD wallet, mnemonics, seeds
-      key.MnemonicCmd(), key.SeedCmd(), key.HDCmd(),
+      key.MnemonicCmd(), key.HDCmd(),
       // Cryptographic functions
       crypto.SHA256Cmd(), crypto.Keccak256Cmd(), crypto.HMACSHA512Cmd(),
       crypto.PBKDF2SHA512Cmd(), crypto.Base58CheckCmd(),

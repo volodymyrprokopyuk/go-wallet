@@ -109,7 +109,7 @@ def "test mnemonic verify" [] {
   }
 }
 
-def "test seed derive" [] {
+def "test hd seed" [] {
   let cases = [[mnem, pass, exp];
     [$seeds.0.mnem, "",
      "5b56c417303faa3fcba7e57400e120a0ca83ec5a4fc9ffba757fbe63fbd77a89a1a3be4c67196f57c39a88b76373733891bfaba16ed27a813ceed498804c0570"],
@@ -121,7 +121,7 @@ def "test seed derive" [] {
      "575385ded4e59bcb0dff46d376faf9d6839eecfde301a3e0f5065d417162a011d3fdb8f1371ea33db10222e5c0d34afd5e0050ff230302411d7f250f71f642b3"]
   ]
   $cases | each {|c|
-    let seed = $c.mnem | wallet seed derive --passphrase $c.pass
+    let seed = $c.mnem | wallet hd seed --passphrase $c.pass
     assert equal $seed $c.exp
   }
 }
@@ -131,13 +131,84 @@ def "test hd master" [] {
     [$seeds.0.mnem,
      "b2a0d576b828b537688b561f2cfa8dac3602d54c62bde619ad5331e6c235ee26",
      "03ca72b45eede592f059b7eaf3da13eb7d8d15aa472b6f79f74820bb22ff596186",
-     "b70d675323c40ec461e0a6af603b1f135fb2af9ae753eeff18922732a73b0f05"]
+     "b70d675323c40ec461e0a6af603b1f135fb2af9ae753eeff18922732a73b0f05"],
+    [$seeds.1.mnem,
+     "fb71fec531b94df06bdcf2cb54b921602adbb65936d71e35ab0dba48e11ff1bb",
+     "03d33a807e3267c95f76d75de4785e118a5a5899ab041f2306a6b30afdedb645f2",
+     "3d67c4007a39b19fa607c98eeabeb8b8af71bf698eb3afe9e24137794309663b"]
   ]
   $cases | each {|c|
     let exp = [prv, pubc, code]
-    let key = $c.mnem | wallet seed derive | wallet hd master
+    let key = $c.mnem | wallet hd seed | wallet hd master
       | from yaml | select ...$exp
     assert equal $key ($c | select ...$exp)
+  }
+}
+
+def "test hd private" [] {
+  let cases = [[mnem, idx, prv, pubc, code];
+    [$seeds.0.mnem, 0,
+     "5436c97cfb761b414e0f20c4801d5c4fc4d602a94e4bdaee058890f75c77f756",
+     "0261eb369da972add92ed21fd3d049689700c9a84582181a6ec286ee3f7b5cbc81",
+     "a74b758d3dc442f8620a2438f56629e62a743a4b4fe1ad02166185bf290b56d1"],
+    [$seeds.1.mnem, 1,
+     "6081569494472cefe9cab81c0a8821d8cda6cd5ee175e61e21b3c9cc28f1cbb2",
+     "033706dbc981daba489907e63a70eacc61cf7a8bf79a3519148fbb3c3a1ef168a9",
+     "c8b8af95f08ed822118491ef52bb476763a3a1e5ad971aaaf4edb59457948a96"]
+  ]
+  $cases | each {|c|
+    let exp = [prv, pubc, code]
+    let mst = $c.mnem | wallet hd seed | wallet hd master | from yaml
+    let prve = $mst.prv ++ $mst.code
+    let key = $prve | wallet hd private --index $c.idx
+      | from yaml | select ...$exp
+    assert equal $key ($c | select ...$exp)
+  }
+}
+
+def "test hd hardened" [] {
+  let cases = [[mnem, idx, prv, pubc, code];
+    [$seeds.0.mnem, 0,
+     "b002c1c5b7c3a9937c08e468fa0fba20ddd8a31a07deddf1464ac160fe9bd334",
+     "03710e0c1ae16fae2bce576c02c90345dec9a2acf0506e32ec24cd37a5e9019a17",
+     "ce62c620b7cd66e27f970d0f29e4f2082c6b7740bd184d0c9c61f79d819af563"],
+    [$seeds.1.mnem, 1,
+     "0500fc8817b8f41d98dd78a095f2336d1a00fa0562ce997e3840a50bf4db0c55",
+     "025650e0339b0bfdaea2550b36ddf0df7cd0f26aaf224fbde16a39f39618777827",
+     "0e93a5fa7850095f029ae4a4393929dbbad0a05ec907bacd8a646653c18f2d01"]
+  ]
+  $cases | each {|c|
+    let exp = [prv, pubc, code]
+    let mst = $c.mnem | wallet hd seed | wallet hd master | from yaml
+    let prve = $mst.prv ++ $mst.code
+    let key = $prve | wallet hd hardened --index $c.idx
+      | from yaml | select ...$exp
+    assert equal $key ($c | select ...$exp)
+  }
+}
+
+def "test hd public" [] {
+  let cases = [[mnem, idx, prv, pubc, code];
+    [$seeds.0.mnem, 0,
+     "5436c97cfb761b414e0f20c4801d5c4fc4d602a94e4bdaee058890f75c77f756",
+     "0261eb369da972add92ed21fd3d049689700c9a84582181a6ec286ee3f7b5cbc81",
+     "a74b758d3dc442f8620a2438f56629e62a743a4b4fe1ad02166185bf290b56d1"],
+    [$seeds.1.mnem, 1,
+     "6081569494472cefe9cab81c0a8821d8cda6cd5ee175e61e21b3c9cc28f1cbb2",
+     "033706dbc981daba489907e63a70eacc61cf7a8bf79a3519148fbb3c3a1ef168a9",
+     "c8b8af95f08ed822118491ef52bb476763a3a1e5ad971aaaf4edb59457948a96"]
+  ]
+  $cases | each {|c|
+    let exp = [pubc, code]
+    let mst = $c.mnem | wallet hd seed | wallet hd master | from yaml
+    let prve = $mst.prv ++ $mst.code
+    let key = $prve | wallet hd private --index $c.idx
+      | from yaml | select ...$exp
+    assert equal $key ($c | select ...$exp)
+    let pube = $mst.pubc ++ $mst.code
+    let pub = $pube | wallet hd public --index $c.idx
+      | from yaml | select ...$exp
+    assert equal $pub $key
   }
 }
 
@@ -152,11 +223,18 @@ test mnemonic generate
 test mnemonic derive
 test mnemonic verify
 
-test seed derive
+test hd seed
 test hd master
+test hd private
+test hd hardened
+test hd public
 
-# let mnem = "army van defense carry jealous true garbage claim echo media make crunch"
-# $mnem | wallet seed derive | tee { print }
-#   | wallet hd master | from yaml | print
+# let mst = $seeds.0.mnem | wallet hd seed | tee { print }
+#   | wallet hd master | from yaml | tee { print }
+# let prve = $mst.prv ++ $mst.code
+# $prve | wallet hd private --index 0 | from yaml | print
+# # $prve | wallet hd hardened --index 0 | from yaml | print
+# let pube = $mst.pubc ++ $mst.code
+# $pube | wallet hd public --index 0 | from yaml | print
 
 print success

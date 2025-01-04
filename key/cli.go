@@ -24,7 +24,7 @@ func keyGenerateCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "generate",
     Usage: `Generate a secp256k1 key pair
-  stdout: a key pair in hex in yaml {prv, pub}`,
+  stdout: a key pair in hex in YAML`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
       key, err := keyGenerate()
       if err != nil {
@@ -42,7 +42,7 @@ func keyDeriveCmd() *cli.Command {
     Name: "derive",
     Usage: `Derive a secp256k1 public key from an external private key
   stdin: an external private key in hex
-  stdout: a key pair in hex in yaml {prv, pub}`,
+  stdout: a key pair in hex in YAML`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
       var prv []byte
       _, err := fmt.Scanf("%x", &prv)
@@ -279,12 +279,13 @@ func mnemonicVerifyCmd() *cli.Command {
   return cmd
 }
 
-func SeedCmd() *cli.Command {
+func HDCmd() *cli.Command {
   cmd := &cli.Command{
-    Name: "seed",
-    Usage: "Derive a seed from a mnemonic and an optional passphrase",
+    Name: "hd",
+    Usage: "Derive master and children extended public and private keys",
     Commands: []*cli.Command{
-      seedDeriveCmd(),
+      seedDeriveCmd(), masterDeriveCmd(), privateDeriveCmd(),
+      hardenedDeriveCmd(), publicDeriveCmd(),
     },
   }
   return cmd
@@ -292,8 +293,8 @@ func SeedCmd() *cli.Command {
 
 func seedDeriveCmd() *cli.Command {
   cmd := &cli.Command{
-    Name: "derive",
-    Usage: `Derive a seed from a mnemonic string and an optional passphrase
+    Name: "seed",
+    Usage: `Derive a seed from a mnemonic and an optional passphrase
   stdin: a mnemonic string
   stdout: a seed in hex`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
@@ -316,23 +317,12 @@ func seedDeriveCmd() *cli.Command {
   return cmd
 }
 
-func HDCmd() *cli.Command {
-  cmd := &cli.Command{
-    Name: "hd",
-    Usage: "Derive master and children extended public and private keys",
-    Commands: []*cli.Command{
-      hdMasterCmd(),
-    },
-  }
-  return cmd
-}
-
-func hdMasterCmd() *cli.Command {
+func masterDeriveCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "master",
-    Usage: `Derive master extended public and private keys
+    Usage: `Derive master extended private and public keys from a seed
   stdin: a seed in hex
-  stdout: master extended public and private keys in hex in yaml {prv, pub, code}`,
+  stdout: master extended private and public keys in hex in YAML`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
       var seed []byte
       _, err := fmt.Scanf("%x", &seed)
@@ -342,6 +332,87 @@ func hdMasterCmd() *cli.Command {
       key := masterDerive(seed)
       fmt.Printf("%s\n", key.yamlEncode())
       return nil
+    },
+  }
+  return cmd
+}
+
+func privateDeriveCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "private",
+    Usage: `Derive child extended private and public keys from a parent
+extended private key and a key index
+  stdin: a parent extended private key in hex
+  stdout: child extended private and public keys in hex in YAML`,
+    Action: func(ctx context.Context, cmd *cli.Command) error {
+      index := cmd.Int("index")
+      var prve []byte
+      _, err := fmt.Scanf("%x", &prve)
+      if err != nil {
+        return err
+      }
+      key := privateDerive(prve, uint32(index))
+      fmt.Printf("%s\n", key.yamlEncode())
+      return nil
+    },
+  }
+  cmd.Flags = []cli.Flag{
+    &cli.IntFlag{
+      Name: "index", Usage: "a key index", Required: true,
+    },
+  }
+  return cmd
+}
+
+func hardenedDeriveCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "hardened",
+    Usage: `Derive hardened child extended private and public keys from a parent
+extended private key and a key index
+  stdin: a parent extended private key in hex
+  stdout: child extended private and public keys in hex in YAML`,
+    Action: func(ctx context.Context, cmd *cli.Command) error {
+      index := cmd.Int("index")
+      var prve []byte
+      _, err := fmt.Scanf("%x", &prve)
+      if err != nil {
+        return err
+      }
+      key := hardenedDerive(prve, uint32(index))
+      fmt.Printf("%s\n", key.yamlEncode())
+      return nil
+    },
+  }
+  cmd.Flags = []cli.Flag{
+    &cli.IntFlag{
+      Name: "index", Usage: "a key index, (2 << 31) will be added", Required: true,
+    },
+  }
+  return cmd
+}
+
+func publicDeriveCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "public",
+    Usage: `Derive a child extended public key from a parent
+extended public key and a key index
+  stdin: a parent extended public key in hex
+  stdout: a child extended public key in hex in YAML`,
+    Action: func(ctx context.Context, cmd *cli.Command) error {
+      index := cmd.Int("index")
+      var pube []byte
+      _, err := fmt.Scanf("%x", &pube)
+      if err != nil {
+        return err
+      }
+      key := publicDerive(pube, uint32(index))
+      fmt.Printf("%s\n", key.yamlEncode())
+      return nil
+    },
+  }
+  cmd.Flags = []cli.Flag{
+    &cli.IntFlag{
+      Name: "index", Usage: "a key index", Required: true,
     },
   }
   return cmd

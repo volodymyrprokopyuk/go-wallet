@@ -17,12 +17,28 @@ type ecKey struct {
   code []byte // The HD chain code
 }
 
-func newECKey(key *ecdsa.PrivateKey, code []byte) *ecKey {
-  prv := key.D.Bytes()
-  pub := append(key.X.Bytes(), key.Y.Bytes()...)
+// func newECKey(key *ecdsa.PrivateKey, code []byte) *ecKey {
+//   prv := key.D.Bytes()
+//   pub := append(key.X.Bytes(), key.Y.Bytes()...)
+//   pub = append([]byte{0x04}, pub...)
+//   pubc := key.X.Bytes()
+//   if new(big.Int).Mod(key.Y, big.NewInt(2)).Cmp(big.NewInt(0)) == 0 {
+//     pubc = append([]byte{0x02}, pubc...)
+//   } else {
+//     pubc = append([]byte{0x03}, pubc...)
+//   }
+//   return &ecKey{prv: prv, pub: pub, pubc: pubc, code: code}
+// }
+
+func newECKey(prvd, pubx, puby *big.Int, code []byte) *ecKey {
+  var prv []byte
+  if prvd != nil {
+    prv = prvd.Bytes()
+  }
+  pub := append(pubx.Bytes(), puby.Bytes()...)
   pub = append([]byte{0x04}, pub...)
-  pubc := key.X.Bytes()
-  if new(big.Int).Mod(key.Y, big.NewInt(2)).Cmp(big.NewInt(0)) == 0 {
+  pubc := pubx.Bytes()
+  if new(big.Int).Mod(puby, big.NewInt(2)).Cmp(big.NewInt(0)) == 0 {
     pubc = append([]byte{0x02}, pubc...)
   } else {
     pubc = append([]byte{0x03}, pubc...)
@@ -31,15 +47,21 @@ func newECKey(key *ecdsa.PrivateKey, code []byte) *ecKey {
 }
 
 func (k *ecKey) yamlEncode() string {
-  if len(k.code) > 0 {
+  switch {
+  case len(k.code) == 0: // EC key pair
+    return fmt.Sprintf(
+      "{prv: %064x, pub: %064x, pubc: %064x}", k.prv, k.pub, k.pubc,
+    )
+  case len(k.prv) == 0: // HD public extended key
+    return fmt.Sprintf(
+      "{pub: %064x, pubc: %064x, code: %064x}", k.pub, k.pubc, k.code,
+    )
+  default: // HD private extended key
     return fmt.Sprintf(
       "{prv: %064x, pub: %064x, pubc: %064x, code: %064x}",
       k.prv, k.pub, k.pubc, k.code,
     )
   }
-  return fmt.Sprintf(
-    "{prv: %064x, pub: %064x, pubc: %064x}", k.prv, k.pub, k.pubc,
-  )
 }
 
 func keyGenerate() (*ecKey, error)  {
@@ -47,7 +69,7 @@ func keyGenerate() (*ecKey, error)  {
   if err != nil {
     return nil, err
   }
-  eckey := newECKey(key, nil)
+  eckey := newECKey(key.D, key.X, key.Y, nil)
   return eckey, nil
 }
 
@@ -55,7 +77,7 @@ func keyDerive(prv []byte) *ecKey {
   key := &ecdsa.PrivateKey{D: new(big.Int).SetBytes(prv)}
   key.PublicKey.Curve = ecc.P256k1()
   key.PublicKey.X, key.PublicKey.Y = key.PublicKey.ScalarBaseMult(key.D.Bytes())
-  return newECKey(key, nil)
+  return newECKey(key.D, key.X, key.Y, nil)
 }
 
 func keyAddress(pub []byte) []byte {
