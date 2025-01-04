@@ -26,10 +26,11 @@ func Keccak256(data []byte) []byte {
 func HMACSHA512(data, key []byte) []byte {
   state := hmac.New(sha512.New, key)
   _, _ = state.Write(data)
-  mac := state.Sum(nil)
-  return mac
+  hmac := state.Sum(nil)
+  return hmac
 }
 
 func PBKDF2SHA512(pass, salt []byte, iter, keyLen int) []byte {
-  return pbkdf2.Key(pass, salt, iter, keyLen, sha512.New)
+  key := pbkdf2.Key(pass, salt, iter, keyLen, sha512.New)
+  return key
 }

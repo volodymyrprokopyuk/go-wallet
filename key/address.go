@@ -9,23 +9,6 @@ import (
 	"github.com/volodymyrprokopyuk/go-wallet/crypto"
 )
 
-// func addressEncode(addr string) string {
-//   addr = strings.ToLower(addr)
-//   hash := crypto.Keccak256([]byte(addr))
-//   hexAddr := strings.Split(addr, "")
-//   hexHash := strings.Split(fmt.Sprintf("%x", hash), "")
-//   var encAddr strings.Builder
-//   for i := range addr {
-//     h, _ := strconv.ParseInt(hexHash[i], 16, 8)
-//     a := hexAddr[i]
-//     if h >= 8 {
-//       a = strings.ToUpper(a)
-//     }
-//     _, _ = encAddr.WriteString(a)
-//   }
-//   return encAddr.String()
-// }
-
 func addressEncode(addr []byte) string {
   hexAddr := fmt.Sprintf("%x", addr)
   hash := crypto.Keccak256([]byte(hexAddr))

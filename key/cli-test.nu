@@ -23,10 +23,9 @@ def "test key derive" [] {
   let pemPub = $pemPrv | openssl ec -pubout
   let exp = {
     prv: ($pemPrv | openssl ec -text -noout | parse-key "priv:")
-    pub: ($pemPub | openssl ec -text -noout -pubin | parse-key "pub:"
-      | str substring 2..129)
+    pub: ($pemPub | openssl ec -text -noout -pubin | parse-key "pub:")
   }
-  let key = $exp.prv | wallet key derive | from yaml
+  let key = $exp.prv | wallet key derive | from yaml | select prv pub
   assert equal $key $exp
 }
 
@@ -127,6 +126,21 @@ def "test seed derive" [] {
   }
 }
 
+def "test hd master" [] {
+  let cases = [[mnem, prv, pubc, code];
+    [$seeds.0.mnem,
+     "b2a0d576b828b537688b561f2cfa8dac3602d54c62bde619ad5331e6c235ee26",
+     "03ca72b45eede592f059b7eaf3da13eb7d8d15aa472b6f79f74820bb22ff596186",
+     "b70d675323c40ec461e0a6af603b1f135fb2af9ae753eeff18922732a73b0f05"]
+  ]
+  $cases | each {|c|
+    let exp = [prv, pubc, code]
+    let key = $c.mnem | wallet seed derive | wallet hd master
+      | from yaml | select ...$exp
+    assert equal $key ($c | select ...$exp)
+  }
+}
+
 test key generate
 test key derive
 test key address
@@ -139,5 +153,10 @@ test mnemonic derive
 test mnemonic verify
 
 test seed derive
+test hd master
+
+# let mnem = "army van defense carry jealous true garbage claim echo media make crunch"
+# $mnem | wallet seed derive | tee { print }
+#   | wallet hd master | from yaml | print
 
 print success

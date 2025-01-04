@@ -2,17 +2,12 @@ package key
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"fmt"
 	"io"
 	"os"
 
 	"github.com/urfave/cli/v3"
 )
-
-func formatKey(key *ecdsa.PrivateKey) string {
-  return fmt.Sprintf("{prv: %064x, pub: %064x%064x}", key.D, key.X, key.Y)
-}
 
 func KeyCmd() *cli.Command {
   cmd := &cli.Command{
@@ -35,7 +30,7 @@ func keyGenerateCmd() *cli.Command {
       if err != nil {
         return err
       }
-      fmt.Printf("%s\n", formatKey(key))
+      fmt.Printf("%s\n", key.yamlEncode())
       return nil
     },
   }
@@ -55,7 +50,7 @@ func keyDeriveCmd() *cli.Command {
         return err
       }
       key := keyDerive(prv)
-      fmt.Printf("%s\n", formatKey(key))
+      fmt.Printf("%s\n", key.yamlEncode())
       return nil
     },
   }
@@ -316,6 +311,37 @@ func seedDeriveCmd() *cli.Command {
   cmd.Flags = []cli.Flag{
     &cli.StringFlag{
       Name: "passphrase", Usage: "a passphrase string",
+    },
+  }
+  return cmd
+}
+
+func HDCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "hd",
+    Usage: "Derive master and children extended public and private keys",
+    Commands: []*cli.Command{
+      hdMasterCmd(),
+    },
+  }
+  return cmd
+}
+
+func hdMasterCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "master",
+    Usage: `Derive master extended public and private keys
+  stdin: a seed in hex
+  stdout: master extended public and private keys in hex in yaml {prv, pub, code}`,
+    Action: func(ctx context.Context, cmd *cli.Command) error {
+      var seed []byte
+      _, err := fmt.Scanf("%x", &seed)
+      if err != nil {
+        return err
+      }
+      key := masterDerive(seed)
+      fmt.Printf("%s\n", key.yamlEncode())
+      return nil
     },
   }
   return cmd

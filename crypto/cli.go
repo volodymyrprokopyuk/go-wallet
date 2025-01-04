@@ -59,8 +59,8 @@ func HMACSHA512Cmd() *cli.Command {
       if err != nil {
         return err
       }
-      mac := HMACSHA512(data, []byte(key))
-      fmt.Printf("%x\n", mac)
+      hmac := HMACSHA512(data, []byte(key))
+      fmt.Printf("%x\n", hmac)
       return nil
     },
   }
