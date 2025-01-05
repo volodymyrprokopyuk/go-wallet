@@ -15,60 +15,60 @@ func seedDerive(mnemonic, passphrase string) []byte {
   return seed
 }
 
-func masterDerive(seed []byte) *ecKey {
+func masterDerive(seed []byte) *extKey {
   hmac := crypto.HMACSHA512(seed, []byte("Bitcoin seed"))
-  prv := hmac[:32]
+  prv, code := hmac[:32], hmac[32:]
   key := keyDerive(prv)
-  key.code = hmac[32:]
-  return key
+  ekey := &extKey{prvKey: *key, code: code, depth: 0, index: 0}
+  return ekey
 }
 
-func privateDerive(prve []byte, index uint32) *ecKey {
+func privateDerive(prve []byte, depth, index uint32) *extKey {
   parPrv, parCode := prve[:32], prve[32:]
   parKey := keyDerive(parPrv)
   idx := make([]byte, 4)
   binary.BigEndian.PutUint32(idx, index)
   data := append(parKey.pubc, idx...) // parent public compressed
   hmac := crypto.HMACSHA512(data, parCode)
-  prvi := new(big.Int).SetBytes(hmac[:32])
+  prv, code := hmac[:32], hmac[32:]
+  prvi := new(big.Int).SetBytes(prv)
   prvi.Add(prvi, new(big.Int).SetBytes(parPrv))
   prvi.Mod(prvi, ecc.P256k1().Params().N)
-  prv := prvi.Bytes()
-  key := keyDerive(prv)
-  key.code = hmac[32:]
-  return key
+  key := keyDerive(prvi.Bytes())
+  ekey := &extKey{prvKey: *key, code: code, depth: depth, index: index}
+  return ekey
 }
 
-func hardenedDerive(prve []byte, index uint32) *ecKey {
+func hardenedDerive(prve []byte, depth, index uint32) *extKey {
   parPrv, parCode := prve[:32], prve[32:]
-  index += uint32(1 << 31)
+  index += uint32(1 << 31) // hardened key index
   idx := make([]byte, 4)
   binary.BigEndian.PutUint32(idx, index)
   data := append([]byte{0x00}, parPrv...) // parent private prefixed
   data = append(data, idx...)
   hmac := crypto.HMACSHA512(data, parCode)
-  prvi := new(big.Int).SetBytes(hmac[:32])
+  prv, code := hmac[:32], hmac[32:]
+  prvi := new(big.Int).SetBytes(prv)
   prvi.Add(prvi, new(big.Int).SetBytes(parPrv))
   prvi.Mod(prvi, ecc.P256k1().Params().N)
-  prv := prvi.Bytes()
-  key := keyDerive(prv)
-  key.code = hmac[32:]
-  return key
+  key := keyDerive(prvi.Bytes())
+  ekey := &extKey{prvKey: *key, code: code, depth: depth, index: index}
+  return ekey
 }
 
-func publicDerive(pube []byte, index uint32) *ecKey {
+func publicDerive(pube []byte, depth, index uint32) *extKey {
   parPubc, parCode := pube[:33], pube[33:]
   idx := make([]byte, 4)
   binary.BigEndian.PutUint32(idx, index)
   data := append([]byte{}, parPubc...) // parent public compressed
   data = append(data, idx...)
   hmac := crypto.HMACSHA512(data, parCode)
+  pb, code := hmac[:32], hmac[32:]
+  parX, parY := ecc.UnmarshalCompressed(ecc.P256k1(), parPubc)
   pub := new(ecdsa.PublicKey)
   pub.Curve = ecc.P256k1()
-  pub.X, pub.Y = pub.ScalarBaseMult(hmac[:32])
-  parX, parY := ecc.UnmarshalCompressed(ecc.P256k1(), parPubc)
+  pub.X, pub.Y = pub.ScalarBaseMult(pb)
   pubx, puby := pub.Add(pub.X, pub.Y, parX, parY)
-  code := hmac[32:]
-  key := newECKey(nil, pubx, puby, code)
-  return key
+  ekey := newExtPubKey(pubx, puby, code, depth, index)
+  return ekey
 }

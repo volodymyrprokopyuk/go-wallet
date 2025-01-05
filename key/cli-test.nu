@@ -146,12 +146,12 @@ def "test hd master" [] {
 }
 
 def "test hd private" [] {
-  let cases = [[mnem, idx, prv, pubc, code];
-    [$seeds.0.mnem, 0,
+  let cases = [[mnem, dep, idx, prv, pubc, code];
+    [$seeds.0.mnem, 0, 0,
      "5436c97cfb761b414e0f20c4801d5c4fc4d602a94e4bdaee058890f75c77f756",
      "0261eb369da972add92ed21fd3d049689700c9a84582181a6ec286ee3f7b5cbc81",
      "a74b758d3dc442f8620a2438f56629e62a743a4b4fe1ad02166185bf290b56d1"],
-    [$seeds.1.mnem, 1,
+    [$seeds.1.mnem, 0, 1,
      "6081569494472cefe9cab81c0a8821d8cda6cd5ee175e61e21b3c9cc28f1cbb2",
      "033706dbc981daba489907e63a70eacc61cf7a8bf79a3519148fbb3c3a1ef168a9",
      "c8b8af95f08ed822118491ef52bb476763a3a1e5ad971aaaf4edb59457948a96"]
@@ -160,19 +160,19 @@ def "test hd private" [] {
     let exp = [prv, pubc, code]
     let mst = $c.mnem | wallet hd seed | wallet hd master | from yaml
     let prve = $mst.prv ++ $mst.code
-    let key = $prve | wallet hd private --index $c.idx
+    let key = $prve | wallet hd private --depth $c.dep --index $c.idx
       | from yaml | select ...$exp
     assert equal $key ($c | select ...$exp)
   }
 }
 
 def "test hd hardened" [] {
-  let cases = [[mnem, idx, prv, pubc, code];
-    [$seeds.0.mnem, 0,
+  let cases = [[mnem, dep, idx, prv, pubc, code];
+    [$seeds.0.mnem, 0, 0,
      "b002c1c5b7c3a9937c08e468fa0fba20ddd8a31a07deddf1464ac160fe9bd334",
      "03710e0c1ae16fae2bce576c02c90345dec9a2acf0506e32ec24cd37a5e9019a17",
      "ce62c620b7cd66e27f970d0f29e4f2082c6b7740bd184d0c9c61f79d819af563"],
-    [$seeds.1.mnem, 1,
+    [$seeds.1.mnem, 0, 1,
      "0500fc8817b8f41d98dd78a095f2336d1a00fa0562ce997e3840a50bf4db0c55",
      "025650e0339b0bfdaea2550b36ddf0df7cd0f26aaf224fbde16a39f39618777827",
      "0e93a5fa7850095f029ae4a4393929dbbad0a05ec907bacd8a646653c18f2d01"]
@@ -181,19 +181,19 @@ def "test hd hardened" [] {
     let exp = [prv, pubc, code]
     let mst = $c.mnem | wallet hd seed | wallet hd master | from yaml
     let prve = $mst.prv ++ $mst.code
-    let key = $prve | wallet hd hardened --index $c.idx
+    let key = $prve | wallet hd hardened --depth $c.dep --index $c.idx
       | from yaml | select ...$exp
     assert equal $key ($c | select ...$exp)
   }
 }
 
 def "test hd public" [] {
-  let cases = [[mnem, idx, prv, pubc, code];
-    [$seeds.0.mnem, 0,
+  let cases = [[mnem, dep, idx, prv, pubc, code];
+    [$seeds.0.mnem, 0, 0,
      "5436c97cfb761b414e0f20c4801d5c4fc4d602a94e4bdaee058890f75c77f756",
      "0261eb369da972add92ed21fd3d049689700c9a84582181a6ec286ee3f7b5cbc81",
      "a74b758d3dc442f8620a2438f56629e62a743a4b4fe1ad02166185bf290b56d1"],
-    [$seeds.1.mnem, 1,
+    [$seeds.1.mnem, 0, 1,
      "6081569494472cefe9cab81c0a8821d8cda6cd5ee175e61e21b3c9cc28f1cbb2",
      "033706dbc981daba489907e63a70eacc61cf7a8bf79a3519148fbb3c3a1ef168a9",
      "c8b8af95f08ed822118491ef52bb476763a3a1e5ad971aaaf4edb59457948a96"]
@@ -202,11 +202,11 @@ def "test hd public" [] {
     let exp = [pubc, code]
     let mst = $c.mnem | wallet hd seed | wallet hd master | from yaml
     let prve = $mst.prv ++ $mst.code
-    let key = $prve | wallet hd private --index $c.idx
+    let key = $prve | wallet hd private --depth $c.dep --index $c.idx
       | from yaml | select ...$exp
     assert equal $key ($c | select ...$exp)
     let pube = $mst.pubc ++ $mst.code
-    let pub = $pube | wallet hd public --index $c.idx
+    let pub = $pube | wallet hd public --depth $c.dep --index $c.idx
       | from yaml | select ...$exp
     assert equal $pub $key
   }

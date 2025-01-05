@@ -345,20 +345,23 @@ extended private key and a key index
   stdin: a parent extended private key in hex
   stdout: child extended private and public keys in hex in YAML`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
-      index := cmd.Int("index")
+      depth, index := cmd.Int("depth"), cmd.Int("index")
       var prve []byte
       _, err := fmt.Scanf("%x", &prve)
       if err != nil {
         return err
       }
-      key := privateDerive(prve, uint32(index))
+      key := privateDerive(prve, uint32(depth), uint32(index))
       fmt.Printf("%s\n", key.yamlEncode())
       return nil
     },
   }
   cmd.Flags = []cli.Flag{
     &cli.IntFlag{
-      Name: "index", Usage: "a key index", Required: true,
+      Name: "depth", Usage: "a key depth from the master", Required: true,
+    },
+    &cli.IntFlag{
+      Name: "index", Usage: "a key index from the parent", Required: true,
     },
   }
   return cmd
@@ -372,20 +375,24 @@ extended private key and a key index
   stdin: a parent extended private key in hex
   stdout: child extended private and public keys in hex in YAML`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
-      index := cmd.Int("index")
+      depth, index := cmd.Int("depth"), cmd.Int("index")
       var prve []byte
       _, err := fmt.Scanf("%x", &prve)
       if err != nil {
         return err
       }
-      key := hardenedDerive(prve, uint32(index))
+      key := hardenedDerive(prve, uint32(depth), uint32(index))
       fmt.Printf("%s\n", key.yamlEncode())
       return nil
     },
   }
   cmd.Flags = []cli.Flag{
     &cli.IntFlag{
-      Name: "index", Usage: "a key index, (2 << 31) will be added", Required: true,
+      Name: "depth", Usage: "a key depth from the master", Required: true,
+    },
+    &cli.IntFlag{
+      Name: "index", Usage: "a key index from the parent, (2 << 31) will be added",
+      Required: true,
     },
   }
   return cmd
@@ -399,20 +406,23 @@ extended public key and a key index
   stdin: a parent extended public key in hex
   stdout: a child extended public key in hex in YAML`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
-      index := cmd.Int("index")
+      depth, index := cmd.Int("depth"), cmd.Int("index")
       var pube []byte
       _, err := fmt.Scanf("%x", &pube)
       if err != nil {
         return err
       }
-      key := publicDerive(pube, uint32(index))
+      key := publicDerive(pube, uint32(depth), uint32(index))
       fmt.Printf("%s\n", key.yamlEncode())
       return nil
     },
   }
   cmd.Flags = []cli.Flag{
     &cli.IntFlag{
-      Name: "index", Usage: "a key index", Required: true,
+      Name: "depth", Usage: "a key depth from the master", Required: true,
+    },
+    &cli.IntFlag{
+      Name: "index", Usage: "a key index from the parent", Required: true,
     },
   }
   return cmd

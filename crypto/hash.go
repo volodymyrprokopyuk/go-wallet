@@ -6,6 +6,7 @@ import (
 	"crypto/sha512"
 
 	"golang.org/x/crypto/pbkdf2"
+	"golang.org/x/crypto/ripemd160" //nolint:all
 	"golang.org/x/crypto/sha3"
 )
 
@@ -18,6 +19,13 @@ func SHA256(data []byte) []byte {
 
 func Keccak256(data []byte) []byte {
   state := sha3.NewLegacyKeccak256()
+  _, _ = state.Write(data)
+  hash := state.Sum(nil)
+  return hash
+}
+
+func RIPEMD160(data []byte) []byte {
+  state := ripemd160.New()
   _, _ = state.Write(data)
   hash := state.Sum(nil)
   return hash
