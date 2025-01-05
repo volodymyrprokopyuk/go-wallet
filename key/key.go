@@ -27,9 +27,9 @@ func newPubKey(pubx, puby *big.Int) *pubKey {
   return &pubKey{pub: pub, pubc: pubc}
 }
 
-// func (k *pubKey) yamlEncode() string {
-//   return fmt.Sprintf("{pub: %064x, pubc: %064x}", k.pub, k.pubc)
-// }
+func (k *pubKey) yamlEncode() string {
+  return fmt.Sprintf("{pub: %0128x, pubc: %065x}", k.pub, k.pubc)
+}
 
 type prvKey struct {
   pubKey
@@ -44,28 +44,28 @@ func newPrvKey(prvd, pubx, puby *big.Int) *prvKey {
 
 func (k *prvKey) yamlEncode() string {
   return fmt.Sprintf(
-    "{prv: %064x, pub: %064x, pubc: %064x}", k.prv, k.pub, k.pubc,
+    "{prv: %064x, pub: %0128x, pubc: %065x}", k.prv, k.pub, k.pubc,
   )
 }
 
 type extKey struct {
   prvKey
   code []byte // A HD chain code 32 bytes
-  depth uint32 // A depth of the HD key from the master
+  depth uint8 // A depth of the HD key from the master
   index uint32 // A index of the HD key from the parent
   xprv string // A encoded HD extended private key
   xpub string // A encoded HD extended public key
 }
 
-// func newExtPrvKey(
-//   prvd, pubx, puby *big.Int, code []byte, depth, index uint32,
-// ) *extKey {
-//   prv := newPrvKey(prvd, pubx, puby)
-//   return &extKey{prvKey: *prv, code: code, depth: depth, index: index}
-// }
+func newExtPrvKey(
+  prvd, pubx, puby *big.Int, code []byte, depth uint8, index uint32,
+) *extKey {
+  prv := newPrvKey(prvd, pubx, puby)
+  return &extKey{prvKey: *prv, code: code, depth: depth, index: index}
+}
 
 func newExtPubKey(
-  pubx, puby *big.Int, code []byte, depth, index uint32,
+  pubx, puby *big.Int, code []byte, depth uint8, index uint32,
 ) *extKey {
   pub := newPubKey(pubx, puby)
   prv := prvKey{pubKey: *pub}

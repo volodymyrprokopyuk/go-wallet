@@ -54,17 +54,17 @@ func seedDerive(mnemonic, passphrase string) []byte {
 }
 
 func masterDerive(seed []byte) *extKey {
-  depth, index := uint32(0), uint32(0)
+  depth, index := uint8(0), uint32(0)
   hmac := crypto.HMACSHA512(seed, []byte("Bitcoin seed"))
   prv, code := hmac[:32], hmac[32:]
   key := keyDerive(prv)
   ekey := &extKey{prvKey: *key, code: code, depth: depth, index: index}
-  ekey.xprv = keyEncode(xprvVer, uint8(depth), nil, index, code, prv)
-  ekey.xpub = keyEncode(xpubVer, uint8(depth), nil, index, code, key.pubc)
+  ekey.xprv = keyEncode(xprvVer, depth, nil, index, code, prv)
+  ekey.xpub = keyEncode(xpubVer, depth, nil, index, code, key.pubc)
   return ekey
 }
 
-func privateDerive(prve []byte, depth, index uint32) *extKey {
+func privateDerive(prve []byte, depth uint8, index uint32) *extKey {
   parPrv, parCode := prve[:32], prve[32:]
   parKey := keyDerive(parPrv)
   idx := make([]byte, 4)
@@ -77,12 +77,12 @@ func privateDerive(prve []byte, depth, index uint32) *extKey {
   prvi.Mod(prvi, ecc.P256k1().Params().N)
   key := keyDerive(prvi.Bytes())
   ekey := &extKey{prvKey: *key, code: code, depth: depth, index: index}
-  ekey.xprv = keyEncode(xprvVer, uint8(depth), parKey.pubc, index, code, key.prv)
-  ekey.xpub = keyEncode(xpubVer, uint8(depth), parKey.pubc, index, code, key.pubc)
+  ekey.xprv = keyEncode(xprvVer, depth, parKey.pubc, index, code, key.prv)
+  ekey.xpub = keyEncode(xpubVer, depth, parKey.pubc, index, code, key.pubc)
   return ekey
 }
 
-func hardenedDerive(prve []byte, depth, index uint32) *extKey {
+func hardenedDerive(prve []byte, depth uint8, index uint32) *extKey {
   parPrv, parCode := prve[:32], prve[32:]
   parKey := keyDerive(parPrv) // only for xprv and xpub
   index += uint32(1 << 31) // hardened key index
@@ -97,12 +97,12 @@ func hardenedDerive(prve []byte, depth, index uint32) *extKey {
   prvi.Mod(prvi, ecc.P256k1().Params().N)
   key := keyDerive(prvi.Bytes())
   ekey := &extKey{prvKey: *key, code: code, depth: depth, index: index}
-  ekey.xprv = keyEncode(xprvVer, uint8(depth), parKey.pubc, index, code, key.prv)
-  ekey.xpub = keyEncode(xpubVer, uint8(depth), parKey.pubc, index, code, key.pubc)
+  ekey.xprv = keyEncode(xprvVer, depth, parKey.pubc, index, code, key.prv)
+  ekey.xpub = keyEncode(xpubVer, depth, parKey.pubc, index, code, key.pubc)
   return ekey
 }
 
-func publicDerive(pube []byte, depth, index uint32) *extKey {
+func publicDerive(pube []byte, depth uint8, index uint32) *extKey {
   parPubc, parCode := pube[:33], pube[33:]
   idx := make([]byte, 4)
   binary.BigEndian.PutUint32(idx, index)

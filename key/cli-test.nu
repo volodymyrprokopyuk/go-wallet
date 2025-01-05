@@ -227,22 +227,22 @@ def "test hd public" [] {
   }
 }
 
-# test key generate
-# test key derive
-# test key address
+test key generate
+test key derive
+test key address
 
-# test address encode
-# test address verify
+test address encode
+test address verify
 
-# test mnemonic generate
-# test mnemonic derive
-# test mnemonic verify
+test mnemonic generate
+test mnemonic derive
+test mnemonic verify
 
-# test hd seed
-# test hd master
-# test hd private
+test hd seed
+test hd master
+test hd private
 test hd hardened
-# test hd public
+test hd public
 
 # let mst = $seeds.1.mnem | wallet hd seed | wallet hd master | from yaml
 # let prve = $mst.prv ++ $mst.code

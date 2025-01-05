@@ -351,7 +351,7 @@ extended private key and a key index
       if err != nil {
         return err
       }
-      key := privateDerive(prve, uint32(depth), uint32(index))
+      key := privateDerive(prve, uint8(depth), uint32(index))
       fmt.Printf("%s\n", key.yamlEncode())
       return nil
     },
@@ -381,7 +381,7 @@ extended private key and a key index
       if err != nil {
         return err
       }
-      key := hardenedDerive(prve, uint32(depth), uint32(index))
+      key := hardenedDerive(prve, uint8(depth), uint32(index))
       fmt.Printf("%s\n", key.yamlEncode())
       return nil
     },
@@ -412,7 +412,7 @@ extended public key and a key index
       if err != nil {
         return err
       }
-      key := publicDerive(pube, uint32(depth), uint32(index))
+      key := publicDerive(pube, uint8(depth), uint32(index))
       fmt.Printf("%s\n", key.yamlEncode())
       return nil
     },
