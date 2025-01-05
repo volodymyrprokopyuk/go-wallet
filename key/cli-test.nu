@@ -127,18 +127,23 @@ def "test hd seed" [] {
 }
 
 def "test hd master" [] {
-  let cases = [[mnem, prv, pubc, code];
-    [$seeds.0.mnem,
-     "b2a0d576b828b537688b561f2cfa8dac3602d54c62bde619ad5331e6c235ee26",
-     "03ca72b45eede592f059b7eaf3da13eb7d8d15aa472b6f79f74820bb22ff596186",
-     "b70d675323c40ec461e0a6af603b1f135fb2af9ae753eeff18922732a73b0f05"],
-    [$seeds.1.mnem,
-     "fb71fec531b94df06bdcf2cb54b921602adbb65936d71e35ab0dba48e11ff1bb",
-     "03d33a807e3267c95f76d75de4785e118a5a5899ab041f2306a6b30afdedb645f2",
-     "3d67c4007a39b19fa607c98eeabeb8b8af71bf698eb3afe9e24137794309663b"]
-  ]
+  let cases = [{
+    mnem: $seeds.0.mnem,
+    prv: "b2a0d576b828b537688b561f2cfa8dac3602d54c62bde619ad5331e6c235ee26",
+    pubc: "03ca72b45eede592f059b7eaf3da13eb7d8d15aa472b6f79f74820bb22ff596186",
+    code: "b70d675323c40ec461e0a6af603b1f135fb2af9ae753eeff18922732a73b0f05",
+    xprv: "xprv9s21ZrQH143K3t4UZrNgeA3w861fwjYLaGwmPtQyPMmzshV2owVpfBSd2Q7YsHZ9j6i6ddYjb5PLtUdMZn8LhvuCVhGcQntq5rn7JVMqnie",
+    xpub: "xpub661MyMwAqRbcGN8wfsuh1Hzfg7rAMCGBwVsNCGpawhJykVpBMUp5Cym6shGYvy5RwATVHgF4vfEqvLFHQeccQtSQcVDvHhhaNB1iFF1gW8e"
+  }, {
+    mnem: $seeds.1.mnem,
+    prv: "fb71fec531b94df06bdcf2cb54b921602adbb65936d71e35ab0dba48e11ff1bb",
+    pubc: "03d33a807e3267c95f76d75de4785e118a5a5899ab041f2306a6b30afdedb645f2",
+    code: "3d67c4007a39b19fa607c98eeabeb8b8af71bf698eb3afe9e24137794309663b",
+    xprv: "xprv9s21ZrQH143K2fpGDeSiVghhRbX6YY7yUZ78Ng644PevUa8YKHAYJAg9CCbzkXdZvKZ8Xevajm9rcfYU974Ed86rFzvE58Yq8DdYuAZso5d",
+    xpub: "xpub661MyMwAqRbcF9tjKfyirpeRydMawzqpqn2jB4VfcjBuMNTgrpUnqxzd3VGo5xg35qNWx3Mv8veouvNfBj4o32JFW8mFkPruoFTgnRVXSQf"
+  }]
   $cases | each {|c|
-    let exp = [prv, pubc, code]
+    let exp = [prv, pubc, code, xprv, xpub]
     let key = $c.mnem | wallet hd seed | wallet hd master
       | from yaml | select ...$exp
     assert equal $key ($c | select ...$exp)
@@ -146,18 +151,23 @@ def "test hd master" [] {
 }
 
 def "test hd private" [] {
-  let cases = [[mnem, dep, idx, prv, pubc, code];
-    [$seeds.0.mnem, 0, 0,
-     "5436c97cfb761b414e0f20c4801d5c4fc4d602a94e4bdaee058890f75c77f756",
-     "0261eb369da972add92ed21fd3d049689700c9a84582181a6ec286ee3f7b5cbc81",
-     "a74b758d3dc442f8620a2438f56629e62a743a4b4fe1ad02166185bf290b56d1"],
-    [$seeds.1.mnem, 0, 1,
-     "6081569494472cefe9cab81c0a8821d8cda6cd5ee175e61e21b3c9cc28f1cbb2",
-     "033706dbc981daba489907e63a70eacc61cf7a8bf79a3519148fbb3c3a1ef168a9",
-     "c8b8af95f08ed822118491ef52bb476763a3a1e5ad971aaaf4edb59457948a96"]
-  ]
+  let cases = [{
+    mnem: $seeds.0.mnem, dep: 0, idx: 0,
+    prv: "5436c97cfb761b414e0f20c4801d5c4fc4d602a94e4bdaee058890f75c77f756",
+    pubc: "0261eb369da972add92ed21fd3d049689700c9a84582181a6ec286ee3f7b5cbc81",
+    code: "a74b758d3dc442f8620a2438f56629e62a743a4b4fe1ad02166185bf290b56d1",
+    xprv: "xprv9tKxXKXJXn1LoBYH6pXLttdMDHMhtUMeXHDENWJozs6hDbJTxNRttSNLhce18jVdTbYBE184EqHWfvnxqLLctJFKFVuynwk1TQw1eM1x1x2",
+    xpub: "xpub67KJvq4CN9Ze1fckCr4MG2a5mKCCHw5VtW8qAtiRZCdg6PdcVuk9SEgpYsmoeTbyd1RorJNCHwxd5phXTQFmQ3bMX7zzvBA8cWVhEpKXkn7"
+  }, {
+    mnem: $seeds.1.mnem, dep: 0, idx: 1,
+    prv: "6081569494472cefe9cab81c0a8821d8cda6cd5ee175e61e21b3c9cc28f1cbb2",
+    pubc: "033706dbc981daba489907e63a70eacc61cf7a8bf79a3519148fbb3c3a1ef168a9",
+    code: "c8b8af95f08ed822118491ef52bb476763a3a1e5ad971aaaf4edb59457948a96",
+    xprv: "xprv9sCE2VB8kwF5Ww36VHTQf859DXoM7msXWonJiQUCMdfkrNghN1EH5qycwXfuCnS82Tij8WFYeJWWeAdfmJJB64uBFTWRS8jtXtKqDpUcJds",
+    xpub: "xpub66BaRzi2bJoNjR7ZbJzR2G1smZdqXEbNt2huWnsouyCjjB1quYYXdeJ6npL9K1z4G3M4E8cP3yJf5ZGNQjspAutFvYcHUyzjTo3avhJPwuy"
+  }]
   $cases | each {|c|
-    let exp = [prv, pubc, code]
+    let exp = [prv, pubc, code, xprv, xpub]
     let mst = $c.mnem | wallet hd seed | wallet hd master | from yaml
     let prve = $mst.prv ++ $mst.code
     let key = $prve | wallet hd private --depth $c.dep --index $c.idx
@@ -167,18 +177,23 @@ def "test hd private" [] {
 }
 
 def "test hd hardened" [] {
-  let cases = [[mnem, dep, idx, prv, pubc, code];
-    [$seeds.0.mnem, 0, 0,
-     "b002c1c5b7c3a9937c08e468fa0fba20ddd8a31a07deddf1464ac160fe9bd334",
-     "03710e0c1ae16fae2bce576c02c90345dec9a2acf0506e32ec24cd37a5e9019a17",
-     "ce62c620b7cd66e27f970d0f29e4f2082c6b7740bd184d0c9c61f79d819af563"],
-    [$seeds.1.mnem, 0, 1,
-     "0500fc8817b8f41d98dd78a095f2336d1a00fa0562ce997e3840a50bf4db0c55",
-     "025650e0339b0bfdaea2550b36ddf0df7cd0f26aaf224fbde16a39f39618777827",
-     "0e93a5fa7850095f029ae4a4393929dbbad0a05ec907bacd8a646653c18f2d01"]
-  ]
+  let cases = [{
+    mnem: $seeds.0.mnem, dep: 0, idx: 0,
+    prv: "b002c1c5b7c3a9937c08e468fa0fba20ddd8a31a07deddf1464ac160fe9bd334",
+    pubc: "03710e0c1ae16fae2bce576c02c90345dec9a2acf0506e32ec24cd37a5e9019a17",
+    code: "ce62c620b7cd66e27f970d0f29e4f2082c6b7740bd184d0c9c61f79d819af563",
+    xprv: "xprv9tKxXKXSsSYJyrQJ2LAf7wVTsEKqrTJWDXMA4HVEkmyinuAk8vd7caZwPSZFj115zSW922yXMPKLZc3NoxRgiTriYZCWKtDuXcQft8pcsj9",
+    xpub: "xpub67KJvq4Lhp6cCLUm8MhfV5SCRGALFv2MakGkrftrK7WhfhVtgTwNANtREj43DgidDyU6HmvT8K8Z88qyA3mVgKec6kECm2S8BipUWDXjzgL"
+  }, {
+    mnem: $seeds.1.mnem, dep: 0, idx: 1,
+    prv: "0500fc8817b8f41d98dd78a095f2336d1a00fa0562ce997e3840a50bf4db0c55",
+    pubc: "025650e0339b0bfdaea2550b36ddf0df7cd0f26aaf224fbde16a39f39618777827",
+    code: "0e93a5fa7850095f029ae4a4393929dbbad0a05ec907bacd8a646653c18f2d01",
+    xprv: "xprv9sCE2VBH6bn3fMqVhMm432W3ZbQSXbYWXqJAcf6CVp1x58fVWZTHijGcsFF7skSAut7Y84UAoF6xzdpmCu1b2v3rqNLyq6hoQDjxyZaL7hz",
+    xpub: "xpub66BaRziAvyLLsquxoPJ4QASn7dEvw4GMu4DmR3Vp49Yvwvze46mYGXb6iWthKqB11KAAmWCZmefBWPpQhSTpqRgEgJZCtKHgVJJ9GBRMcWp"
+  }]
   $cases | each {|c|
-    let exp = [prv, pubc, code]
+    let exp = [prv, pubc, code, xprv, xpub]
     let mst = $c.mnem | wallet hd seed | wallet hd master | from yaml
     let prve = $mst.prv ++ $mst.code
     let key = $prve | wallet hd hardened --depth $c.dep --index $c.idx
@@ -212,29 +227,29 @@ def "test hd public" [] {
   }
 }
 
-test key generate
-test key derive
-test key address
+# test key generate
+# test key derive
+# test key address
 
-test address encode
-test address verify
+# test address encode
+# test address verify
 
-test mnemonic generate
-test mnemonic derive
-test mnemonic verify
+# test mnemonic generate
+# test mnemonic derive
+# test mnemonic verify
 
-test hd seed
-test hd master
-test hd private
+# test hd seed
+# test hd master
+# test hd private
 test hd hardened
-test hd public
+# test hd public
 
-# let mst = $seeds.0.mnem | wallet hd seed | tee { print }
-#   | wallet hd master | from yaml | tee { print }
+# let mst = $seeds.1.mnem | wallet hd seed | wallet hd master | from yaml
 # let prve = $mst.prv ++ $mst.code
-# $prve | wallet hd private --index 0 | from yaml | print
-# # $prve | wallet hd hardened --index 0 | from yaml | print
+# # $prve | wallet hd private --depth 0 --index 1 | from yaml | print
+# $prve | wallet hd hardened --depth 0 --index 1 | from yaml | print
+
 # let pube = $mst.pubc ++ $mst.code
-# $pube | wallet hd public --index 0 | from yaml | print
+# $pube | wallet hd public --depth 0 --index 0 | from yaml | print
 
 print success

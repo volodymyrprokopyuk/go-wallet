@@ -22,7 +22,7 @@ func addressEncode(addr []byte) string {
     if h >= 8 {
       a = strings.ToUpper(a)
     }
-    _, _ = encAddr.WriteString(a)
+    encAddr.WriteString(a)
   }
   return encAddr.String()
 }

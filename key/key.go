@@ -76,12 +76,12 @@ func (k *extKey) yamlEncode() string {
   switch {
   case len(k.prv) == 0: // HD public extended key
     return fmt.Sprintf(
-      "{pub: %064x, pubc: %064x, code: %064x, depth: %d, index %d, xpub: %s}",
+      "{pub: %0128x, pubc: %065x, code: %064x, depth: %d, index: %d, xpub: %s}",
       k.pub, k.pubc, k.code, k.depth, k.index, k.xpub,
     )
   default: // HD private extended key
     return fmt.Sprintf(
-      "{prv: %064x, pub: %064x, pubc: %064x, code: %064x, depth: %d, index %d, xprv: %s, xpub: %s}",
+      "{prv: %064x, pub: %0128x, pubc: %065x, code: %064x, depth: %d, index: %d, xprv: %s, xpub: %s}",
       k.prv, k.pub, k.pubc, k.code, k.depth, k.index, k.xprv, k.xpub,
     )
   }

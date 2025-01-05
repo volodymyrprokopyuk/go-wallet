@@ -12,28 +12,28 @@ import (
 
 func SHA256(data []byte) []byte {
   state := sha256.New()
-  _, _ = state.Write(data)
+  state.Write(data)
   hash := state.Sum(nil)
   return hash
 }
 
 func Keccak256(data []byte) []byte {
   state := sha3.NewLegacyKeccak256()
-  _, _ = state.Write(data)
+  state.Write(data)
   hash := state.Sum(nil)
   return hash
 }
 
 func RIPEMD160(data []byte) []byte {
   state := ripemd160.New()
-  _, _ = state.Write(data)
+  state.Write(data)
   hash := state.Sum(nil)
   return hash
 }
 
 func HMACSHA512(data, key []byte) []byte {
   state := hmac.New(sha512.New, key)
-  _, _ = state.Write(data)
+  state.Write(data)
   hmac := state.Sum(nil)
   return hmac
 }
