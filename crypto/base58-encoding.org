@@ -1,0 +1,31 @@
+* Base58 encoding
+
+** Concepts and purpose
+
+- Base58 encoding :: The base58 encoding represents large numbers in a shorter
+  form by using an alphabet of 58 symbols (digits). The base58 alphabet is a
+  subset of the widely used base64 alphabet (26 lower case letters, 26 upper
+  case letters, 10 digits, =+=, and =/=) with removed symbols that are difficult
+  to distinguish and easy to mistype. Namely, the =0= zero, the =O= upper case,
+  the =l= lower case, and the =I= upper case symbols along with the =+=, and the
+  =/= are removed from the base64 alphabet. The base58 encoding of a large
+  number is constructed by consecutive division of the number by the radix 58
+  and by collecting the remainder digits of the base58 representation of the
+  number. The base58 encoding requires the arbitrary precision arithmetic to
+  find the consecutive quotients and remainders of the radix 58 of a large
+  number. The base58 digits are not aligned on the byte or kibble boundary of
+  the original number, like the base64 encoding does. For this reason, the
+  base58 encoding is best suited to represent large, but finite, integer numbers
+  in a compact way. The base58 encoding is not suited for representing arbitrary
+  large binary data, like the base64 encoding does
+- Base58check encoding :: The base58check encoding appends an error detecting
+  checksum to a binary representation of a large number before applying the
+  base58 encoding to the resulting byte sequence. The error detecting checksum
+  is the double SHA256 hash of the original large number. The base58check
+  encoding is designed for humans to enter addresses manually by copying from a
+  visual source. The base58check encoding prevents a wallet from accepting a
+  mistype address as a valid destination of funds that, otherwise, would be lost
+
+** Design and implementation
+
+** Testing and usage
