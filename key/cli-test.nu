@@ -203,18 +203,21 @@ def "test hd hardened" [] {
 }
 
 def "test hd public" [] {
-  let cases = [[mnem, dep, idx, prv, pubc, code];
-    [$seeds.0.mnem, 0, 0,
-     "5436c97cfb761b414e0f20c4801d5c4fc4d602a94e4bdaee058890f75c77f756",
-     "0261eb369da972add92ed21fd3d049689700c9a84582181a6ec286ee3f7b5cbc81",
-     "a74b758d3dc442f8620a2438f56629e62a743a4b4fe1ad02166185bf290b56d1"],
-    [$seeds.1.mnem, 0, 1,
-     "6081569494472cefe9cab81c0a8821d8cda6cd5ee175e61e21b3c9cc28f1cbb2",
-     "033706dbc981daba489907e63a70eacc61cf7a8bf79a3519148fbb3c3a1ef168a9",
-     "c8b8af95f08ed822118491ef52bb476763a3a1e5ad971aaaf4edb59457948a96"]
-  ]
+  let cases = [{
+    mnem: $seeds.0.mnem, dep: 0, idx: 0,
+    prv: "5436c97cfb761b414e0f20c4801d5c4fc4d602a94e4bdaee058890f75c77f756",
+    pubc: "0261eb369da972add92ed21fd3d049689700c9a84582181a6ec286ee3f7b5cbc81",
+    code: "a74b758d3dc442f8620a2438f56629e62a743a4b4fe1ad02166185bf290b56d1",
+    xpub: "xpub67KJvq4CN9Ze1fckCr4MG2a5mKCCHw5VtW8qAtiRZCdg6PdcVuk9SEgpYsmoeTbyd1RorJNCHwxd5phXTQFmQ3bMX7zzvBA8cWVhEpKXkn7"
+  }, {
+    mnem: $seeds.1.mnem, dep: 0, idx: 1,
+    prv: "6081569494472cefe9cab81c0a8821d8cda6cd5ee175e61e21b3c9cc28f1cbb2",
+    pubc: "033706dbc981daba489907e63a70eacc61cf7a8bf79a3519148fbb3c3a1ef168a9",
+    code: "c8b8af95f08ed822118491ef52bb476763a3a1e5ad971aaaf4edb59457948a96",
+    xpub: "xpub66BaRzi2bJoNjR7ZbJzR2G1smZdqXEbNt2huWnsouyCjjB1quYYXdeJ6npL9K1z4G3M4E8cP3yJf5ZGNQjspAutFvYcHUyzjTo3avhJPwuy"
+  }]
   $cases | each {|c|
-    let exp = [pubc, code]
+    let exp = [pubc, code, xpub]
     let mst = $c.mnem | wallet hd seed | wallet hd master | from yaml
     let prve = $mst.prv ++ $mst.code
     let key = $prve | wallet hd private --depth $c.dep --index $c.idx
@@ -246,10 +249,9 @@ test hd public
 
 # let mst = $seeds.1.mnem | wallet hd seed | wallet hd master | from yaml
 # let prve = $mst.prv ++ $mst.code
-# # $prve | wallet hd private --depth 0 --index 1 | from yaml | print
+# $prve | wallet hd private --depth 0 --index 1 | from yaml | print
 # $prve | wallet hd hardened --depth 0 --index 1 | from yaml | print
-
 # let pube = $mst.pubc ++ $mst.code
-# $pube | wallet hd public --depth 0 --index 0 | from yaml | print
+# $pube | wallet hd public --depth 0 --index 1 | from yaml | print
 
 print success
