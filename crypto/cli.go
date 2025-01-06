@@ -107,10 +107,10 @@ func PBKDF2SHA512Cmd() *cli.Command {
 
 func Base58CheckCmd() *cli.Command {
   cmd := &cli.Command{
-    Name: "base58c",
+    Name: "base58chk",
     Usage: "Encode and decode base58check",
     Commands: []*cli.Command{
-      base58CheckEncCmd(), base58CheckDecCmd(),
+      base58CheckEncCmd(), //base58CheckDecCmd(),
     },
   }
   return cmd
@@ -128,7 +128,7 @@ func base58CheckEncCmd() *cli.Command {
       if err != nil {
         return err
       }
-      str := Base58CheckEncHex(num)
+      str := Base58CheckEnc(num)
       fmt.Printf("%s\n", str)
       return nil
     },
@@ -136,25 +136,25 @@ func base58CheckEncCmd() *cli.Command {
   return cmd
 }
 
-func base58CheckDecCmd() *cli.Command {
-  cmd := &cli.Command{
-    Name: "decode",
-    Usage: `Decode base58check
-  stdin: a base58check encoded string
-  stdout: a large number in hex`,
-    Action: func(ctx context.Context, cmd *cli.Command) error {
-      var str string
-      _, err := fmt.Scanf("%s", &str)
-      if err != nil {
-        return err
-      }
-      num, err := Base58CheckDecHex(str)
-      if err != nil {
-        return err
-      }
-      fmt.Printf("%x\n", num)
-      return nil
-    },
-  }
-  return cmd
-}
+// func base58CheckDecCmd() *cli.Command {
+//   cmd := &cli.Command{
+//     Name: "decode",
+//     Usage: `Decode base58check
+//   stdin: a base58check encoded string
+//   stdout: a large number in hex`,
+//     Action: func(ctx context.Context, cmd *cli.Command) error {
+//       var str string
+//       _, err := fmt.Scanf("%s", &str)
+//       if err != nil {
+//         return err
+//       }
+//       num, err := Base58CheckDecHex(str)
+//       if err != nil {
+//         return err
+//       }
+//       fmt.Printf("%x\n", num)
+//       return nil
+//     },
+//   }
+//   return cmd
+// }

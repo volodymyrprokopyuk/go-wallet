@@ -18,6 +18,22 @@ var digit58 = func() map[uint8]int64 {
   return m
 }()
 
+var reLeadZero = regexp.MustCompile(`^0+`)
+
+func leadZeroToOne(hex []byte) string {
+  leadZero := reLeadZero.FindString(fmt.Sprintf("%x", hex))
+  leadOne := strings.Repeat("1", len(leadZero) / 2)
+  return leadOne
+}
+
+var reLeadOne = regexp.MustCompile(`^1+`)
+
+func leadOneToZero(str string) []byte {
+  leadOne := reLeadOne.FindString(str)
+  leadZero := bytes.Repeat([]byte{0x0}, len(leadOne))
+  return leadZero
+}
+
 func strReverse(str string) string {
   var rev strings.Builder
   for i := len(str) - 1; i >= 0; i-- {
@@ -26,25 +42,19 @@ func strReverse(str string) string {
   return rev.String()
 }
 
-func Base58Enc(num *big.Int) string {
+func Base58Enc(hex []byte) string {
   zero, base58 := big.NewInt(0), big.NewInt(58)
-  if num.Cmp(zero) == 0 {
-    return "1"
-  }
-  quot, rem := new(big.Int).SetBytes(num.Bytes()), big.NewInt(0)
+  quot, rem := new(big.Int).SetBytes(hex), big.NewInt(0)
   var rev strings.Builder
   for quot.Cmp(zero) != 0 {
     quot.DivMod(quot, base58, rem)
     rev.WriteByte(alpha58[rem.Int64()])
   }
-  str := strReverse(rev.String())
+  str := leadZeroToOne(hex) + strReverse(rev.String())
   return str
 }
 
-func Base58Dec(str string) (*big.Int, error) {
-  if len(str) == 0 {
-    return nil, fmt.Errorf("base58 decode: empty encoded string")
-  }
+func Base58Dec(str string) ([]byte, error) {
   num, base58 := big.NewInt(0), big.NewInt(58)
   for i := 0; i < len(str); i ++ {
     digit, exist := digit58[str[i]]
@@ -54,56 +64,27 @@ func Base58Dec(str string) (*big.Int, error) {
     num.Mul(num, base58)
     num.Add(num, big.NewInt(digit))
   }
-  return num, nil
+  hex := append(leadOneToZero(str), num.Bytes()...)
+  return hex, nil
 }
 
-func Base58CheckEnc(num *big.Int) string {
-  data := num.Bytes()
-  csum := SHA256(SHA256(data))[:4]
-  data = append(data, csum...)
-  num = new(big.Int).SetBytes(data)
-  str := Base58Enc(num)
+func Base58CheckEnc(hex []byte) string {
+  csum := SHA256(SHA256(hex))
+  data := append(hex, csum[:4]...)
+  str := Base58Enc(data)
   return str
 }
 
-func Base58CheckDec(str string) (*big.Int, error) {
-  if len(str) < 7 {
-    return nil, fmt.Errorf("base58check decode: too short string: %s", str)
-  }
-  num, err := Base58Dec(str)
+func Base58CheckDec(str string) ([]byte, error) {
+  data, err := Base58Dec(str)
   if err != nil {
     return nil, err
   }
-  data := num.Bytes()
   l := len(data) - 4
-  data, csum := data[:l], data[l:]
-  hash := SHA256(SHA256(data))
+  hex, csum := data[:l], data[l:]
+  hash := SHA256(SHA256(hex))
   if !bytes.Equal(hash[:4], csum) {
     return nil, fmt.Errorf("base58check decode: invalid checksum")
   }
-  num = new(big.Int).SetBytes(data)
-  return num, nil
-}
-
-var reLeadZero = regexp.MustCompile(`^0+`)
-
-func Base58CheckEncHex(hex []byte) string {
-  num := new(big.Int).SetBytes(hex)
-  str := Base58CheckEnc(num)
-  leadZero := reLeadZero.FindString(fmt.Sprintf("%x", hex))
-  str = strings.Repeat("1", len(leadZero) / 2) + str
-  return str
-}
-
-var reLeadOne = regexp.MustCompile(`^1+`)
-
-func Base58CheckDecHex(str string) ([]byte, error) {
-  num, err := Base58CheckDec(str)
-  if err != nil {
-    return nil, err
-  }
-  hex := num.Bytes()
-  leadOne := reLeadOne.FindString(str)
-  hex = append(bytes.Repeat([]byte{0x0}, len(leadOne)), hex...)
   return hex, nil
 }

@@ -41,17 +41,15 @@ func ekeyEncode(
   data.Write(key)
   csum := crypto.SHA256(crypto.SHA256(data.Bytes()))
   data.Write(csum[:4])
-  num := new(big.Int).SetBytes(data.Bytes())
-  str := crypto.Base58Enc(num)
+  str := crypto.Base58Enc(data.Bytes())
   return str
 }
 
 func ekeyDecode(str string) (*extKey, error) {
-  num, err := crypto.Base58Dec(str)
+  data, err := crypto.Base58Dec(str)
   if err != nil {
     return nil, err
   }
-  data := num.Bytes()
   version := data[:4]
   depth := uint8(data[4])
   parent := data[5:9]
