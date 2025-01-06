@@ -285,7 +285,7 @@ func HDCmd() *cli.Command {
     Usage: "Derive master and children extended public and private keys",
     Commands: []*cli.Command{
       seedDeriveCmd(), masterDeriveCmd(), privateDeriveCmd(),
-      hardenedDeriveCmd(), publicDeriveCmd(),
+      hardenedDeriveCmd(), publicDeriveCmd(), ekeyDecodeCmd(),
     },
   }
   return cmd
@@ -329,8 +329,8 @@ func masterDeriveCmd() *cli.Command {
       if err != nil {
         return err
       }
-      key := masterDerive(seed)
-      fmt.Printf("%s\n", key.yamlEncode())
+      ekey := masterDerive(seed)
+      fmt.Printf("%s\n", ekey.yamlEncode())
       return nil
     },
   }
@@ -351,8 +351,8 @@ extended private key and a key index
       if err != nil {
         return err
       }
-      key := privateDerive(prve, uint8(depth), uint32(index))
-      fmt.Printf("%s\n", key.yamlEncode())
+      ekey := privateDerive(prve, uint8(depth), uint32(index))
+      fmt.Printf("%s\n", ekey.yamlEncode())
       return nil
     },
   }
@@ -381,8 +381,8 @@ extended private key and a key index
       if err != nil {
         return err
       }
-      key := hardenedDerive(prve, uint8(depth), uint32(index))
-      fmt.Printf("%s\n", key.yamlEncode())
+      ekey := hardenedDerive(prve, uint8(depth), uint32(index))
+      fmt.Printf("%s\n", ekey.yamlEncode())
       return nil
     },
   }
@@ -412,8 +412,8 @@ extended public key and a key index
       if err != nil {
         return err
       }
-      key := publicDerive(pube, uint8(depth), uint32(index))
-      fmt.Printf("%s\n", key.yamlEncode())
+      ekey := publicDerive(pube, uint8(depth), uint32(index))
+      fmt.Printf("%s\n", ekey.yamlEncode())
       return nil
     },
   }
@@ -423,6 +423,29 @@ extended public key and a key index
     },
     &cli.IntFlag{
       Name: "index", Usage: "a key index from the parent", Required: true,
+    },
+  }
+  return cmd
+}
+
+func ekeyDecodeCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "decode",
+    Usage: `Decode a base58 encoded extended private or public key
+  stdin: a base58 encoded extended private or public key
+  stdout: an extended private or public key in hex in YAML`,
+    Action: func(ctx context.Context, cmd *cli.Command) error {
+      var str string
+      _, err := fmt.Scanf("%s", &str)
+      if err != nil {
+        return err
+      }
+      ekey, err := ekeyDecode(str)
+      if err != nil {
+        return err
+      }
+      fmt.Printf("%s\n", ekey.yamlEncode())
+      return nil
     },
   }
   return cmd

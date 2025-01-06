@@ -150,7 +150,7 @@ def "test hd master" [] {
   }
 }
 
-def "test hd private" [] {
+def "test hd private decode" [] {
   let cases = [{
     mnem: $seeds.0.mnem, dep: 0, idx: 0,
     prv: "5436c97cfb761b414e0f20c4801d5c4fc4d602a94e4bdaee058890f75c77f756",
@@ -173,6 +173,11 @@ def "test hd private" [] {
     let key = $prve | wallet hd private --depth $c.dep --index $c.idx
       | from yaml | select ...$exp
     assert equal $key ($c | select ...$exp)
+    let prv = $key.xprv | wallet hd decode | from yaml | select ...$exp
+    assert equal $prv ($c | select ...$exp)
+    let pubExp = [pubc, code, xpub]
+    let pub = $key.xpub | wallet hd decode | from yaml | select ...$pubExp
+    assert equal $pub ($c | select ...$pubExp)
   }
 }
 
@@ -243,13 +248,17 @@ test mnemonic verify
 
 test hd seed
 test hd master
-test hd private
+test hd private decode
 test hd hardened
 test hd public
 
-# let mst = $seeds.1.mnem | wallet hd seed | wallet hd master | from yaml
+# let mst = $seeds.0.mnem | wallet hd seed | wallet hd master | from yaml
 # let prve = $mst.prv ++ $mst.code
-# $prve | wallet hd private --depth 0 --index 1 | from yaml | print
+# let ekey = $prve | wallet hd private --depth 0 --index 0 | from yaml
+# $ekey | print
+# $ekey.xprv | wallet hd decode | from yaml | print
+# $ekey.xpub | wallet hd decode | from yaml | print
+
 # $prve | wallet hd hardened --depth 0 --index 1 | from yaml | print
 # let pube = $mst.pubc ++ $mst.code
 # $pube | wallet hd public --depth 0 --index 1 | from yaml | print
