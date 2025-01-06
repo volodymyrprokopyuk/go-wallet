@@ -62,6 +62,24 @@ def "test pbkdf2-sha512" [] {
   }
 }
 
+def "test base58 encode decode" [] {
+  let cases = [[num, str];
+    ["a5d573ecb2d798d4de357e599271f13169ce0c68d4",
+     "BCSyuxLinRED3jBh63uY7QSpoMdjZ"]
+    ["0000a5d573ecb2d798d4de357e599271f13169ce0c68d4",
+     "11BCSyuxLinRED3jBh63uY7QSpoMdjZ"],
+    ["0093ce48570b55c42c2af816aeaba06cfee1224faebb6127fe",
+     "1EUXSxuUVy2PC5enGXR1a3yxbEjNWMHuem"]
+  ]
+  $cases | each {|c|
+    let str = $c.num | wallet base58 encode
+    assert equal $str $c.str
+    let num = $c.str | wallet base58 decode
+    assert equal $num $c.num
+  }
+}
+
+
 def "test base58chk encode decode" [] {
   let cases = [[num, str];
     ["a5d573ecb2d798d4de357e599271f13169ce0c68d4",
@@ -74,16 +92,17 @@ def "test base58chk encode decode" [] {
   $cases | each {|c|
     let str = $c.num | wallet base58chk encode
     assert equal $str $c.str
-    # let num = $c.str | wallet base58chk decode
-    # assert equal $num $c.num
-    # assert error { $c.str + "x" | wallet base58chk decode }
+    let num = $c.str | wallet base58chk decode
+    assert equal $num $c.num
+    assert error { $c.str + "x" | wallet base58chk decode }
   }
 }
 
-# test sha256
-# test keccak256
-# test hmac-sha512
-# test pbkdf2-sha512
+test sha256
+test keccak256
+test hmac-sha512
+test pbkdf2-sha512
+test base58 encode decode
 test base58chk encode decode
 
 print success

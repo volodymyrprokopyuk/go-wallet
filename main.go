@@ -18,11 +18,12 @@ func walletCmd() *cli.Command {
     Commands: []*cli.Command{
       // EC key pairs, ECDSA sign and verify, Ethereum address
       key.KeyCmd(), key.AddressCmd(),
-      // HD wallet, mnemonics, seeds
+      // HD wallet, mnemonics, seeds, and master keys
+      // HD private, hardened, and public key derivation
       key.MnemonicCmd(), key.HDCmd(),
-      // Cryptographic functions
+      // Cryptographic functions. Base58 and base58check encoding
       crypto.SHA256Cmd(), crypto.Keccak256Cmd(), crypto.HMACSHA512Cmd(),
-      crypto.PBKDF2SHA512Cmd(), crypto.Base58CheckCmd(),
+      crypto.PBKDF2SHA512Cmd(), crypto.Base58Cmd(), crypto.Base58CheckCmd(),
     },
   }
   return cmd

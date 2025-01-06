@@ -18,22 +18,6 @@ var digit58 = func() map[uint8]int64 {
   return m
 }()
 
-var reLeadZero = regexp.MustCompile(`^0+`)
-
-func leadZeroToOne(hex []byte) string {
-  leadZero := reLeadZero.FindString(fmt.Sprintf("%x", hex))
-  leadOne := strings.Repeat("1", len(leadZero) / 2)
-  return leadOne
-}
-
-var reLeadOne = regexp.MustCompile(`^1+`)
-
-func leadOneToZero(str string) []byte {
-  leadOne := reLeadOne.FindString(str)
-  leadZero := bytes.Repeat([]byte{0x0}, len(leadOne))
-  return leadZero
-}
-
 func strReverse(str string) string {
   var rev strings.Builder
   for i := len(str) - 1; i >= 0; i-- {
@@ -41,6 +25,8 @@ func strReverse(str string) string {
   }
   return rev.String()
 }
+
+var reLeadZero = regexp.MustCompile(`^0+`)
 
 func Base58Enc(hex []byte) string {
   zero, base58 := big.NewInt(0), big.NewInt(58)
@@ -50,9 +36,13 @@ func Base58Enc(hex []byte) string {
     quot.DivMod(quot, base58, rem)
     rev.WriteByte(alpha58[rem.Int64()])
   }
-  str := leadZeroToOne(hex) + strReverse(rev.String())
+  leadZero := reLeadZero.FindString(fmt.Sprintf("%x", hex))
+  leadOne := strings.Repeat("1", len(leadZero) / 2)
+  str := leadOne + strReverse(rev.String())
   return str
 }
+
+var reLeadOne = regexp.MustCompile(`^1+`)
 
 func Base58Dec(str string) ([]byte, error) {
   num, base58 := big.NewInt(0), big.NewInt(58)
@@ -64,7 +54,9 @@ func Base58Dec(str string) ([]byte, error) {
     num.Mul(num, base58)
     num.Add(num, big.NewInt(digit))
   }
-  hex := append(leadOneToZero(str), num.Bytes()...)
+  leadOne := reLeadOne.FindString(str)
+  leadZero := bytes.Repeat([]byte{0x0}, len(leadOne))
+  hex := append(leadZero, num.Bytes()...)
   return hex, nil
 }
 
