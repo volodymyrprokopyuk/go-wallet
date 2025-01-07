@@ -34,7 +34,9 @@ func TestBase58EncDec(t *testing.T) {
       t.Errorf("invalid base58 decode: expected %x, got %x", hex, got)
     }
   }
-  // Empty input
+}
+
+func TestBase58EncDecEmptyInput(t *testing.T) {
   hex, exp := []byte{}, ""
   str := crypto.Base58Enc(hex)
   if str != exp {
@@ -46,6 +48,14 @@ func TestBase58EncDec(t *testing.T) {
   }
   if !slices.Equal(got, hex) {
     t.Errorf("invalid base58 decode: expected %x, got %x", hex, got)
+  }
+}
+
+func TestBase58DecInvalidDigit(t *testing.T) {
+  str := "12="
+  _, err := crypto.Base58Dec(str)
+  if err == nil {
+    t.Errorf("base58 decode: expected invalid digit error, got none")
   }
 }
 
@@ -75,7 +85,9 @@ func TestBase58CheckEncDec(t *testing.T) {
       t.Errorf("invalid base58check decode: expected %x, got %x", hex, got)
     }
   }
-  // Empty input
+}
+
+func TestBase58CheckEncDecEmptyInput(t *testing.T) {
   hex, exp := []byte{}, "3QJmnh"
   str := crypto.Base58CheckEnc(hex)
   if str != exp {
@@ -87,5 +99,14 @@ func TestBase58CheckEncDec(t *testing.T) {
   }
   if !slices.Equal(got, hex) {
     t.Errorf("invalid base58check decode: expected %x, got %x", hex, got)
+  }
+}
+
+func TestBase58CheckDecInvalidChecksum(t *testing.T) {
+  hex := []byte{0x01}
+  str := crypto.Base58CheckEnc(hex)
+  _, err := crypto.Base58CheckDec(str + "x")
+  if err == nil {
+    t.Errorf("base58check decode: expected invalid checksum error, got none")
   }
 }

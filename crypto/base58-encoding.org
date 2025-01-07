@@ -1,31 +1,316 @@
-* Base58 encoding
+* Base58 and base58check encodings
+:PROPERTIES:
+:TOC: :include descendants
+:END:
+
+:CONTENTS:
+- [[#concepts-and-purpose][Concepts and purpose]]
+  - [[#base58-encoding][Base58 encoding]]
+  - [[#base58check-encoding][Base58check encoding]]
+- [[#design-and-implementation][Design and implementation]]
+  - [[#base58-encode-and-decode][Base58 encode and decode]]
+  - [[#base58check-encode-and-decode][Base58check encode and decode]]
+- [[#testing-and-usage][Testing and usage]]
+  - [[#testing-the-base58-and-the-base58check-encode-and-decode][Testing the base58 and the base58check encode and decode]]
+  - [[#using-the-base58-encode-and-decode-cli-commands][Using the base58 encode and decode CLI commands]]
+  - [[#using-the-base58chk-encode-and-decode-cli-commands][Using the base58chk encode and decode CLI commands]]
+:END:
 
 ** Concepts and purpose
 
-- Base58 encoding :: The base58 encoding represents large numbers in a shorter
+*** Base58 encoding
+
+- Base58 encoding :: The base58 encoding represents large integers in a shorter
   form by using an alphabet of 58 symbols (digits). The base58 alphabet is a
   subset of the widely used base64 alphabet (26 lower case letters, 26 upper
-  case letters, 10 digits, =+=, and =/=) with removed symbols that are difficult
-  to distinguish and easy to mistype. Namely, the =0= zero, the =O= upper case,
-  the =l= lower case, and the =I= upper case symbols along with the =+=, and the
-  =/= are removed from the base64 alphabet. The base58 encoding of a large
-  number is constructed by consecutive division of the number by the radix 58
-  and by collecting the remainder digits of the base58 representation of the
-  number. The base58 encoding requires the arbitrary precision arithmetic to
-  find the consecutive quotients and remainders of the radix 58 of a large
-  number. The base58 digits are not aligned on the byte or kibble boundary of
-  the original number, like the base64 encoding does. For this reason, the
-  base58 encoding is best suited to represent large, but finite, integer numbers
-  in a compact way. The base58 encoding is not suited for representing arbitrary
-  large binary data, like the base64 encoding does
+  case letters, 10 digits, =+=, and =/=) without six symbols that are difficult
+  to distinguish and easy to mistype. Namely, the =0= zero and the =O= upper
+  case, the =l= lower case and the =I= upper case symbols, along with the =+=
+  and the =/= are removed from the base64 alphabet. The base58 encoding of a
+  large integer is constructed by iterative division of the original integer or
+  consecutive quotients by the radix 58, and collecting the remainder digits
+  into the base58 representation of the integer. The base58 encoding uses the
+  arbitrary precision arithmetic to calculate the consecutive quotients and
+  remainders of the radix 58 of a large integer. In contrast, the base64 encoding
+  does not require the arbitrary precision arithmetic. The base6 encoding splits
+  the binary data into segments of 6 bits, where every 4 segments are aligned on
+  the byte boundary. Each segment is substituted with the corresponding symbol
+  from the 64-digit alphabet. The base64 encoding requires padding with the ~=~
+  symbol to fully cover the original binary data with 6-bit segments. The base58
+  encoding does not require padding. The base58 digits are not aligned on the
+  byte boundary of the large integer, like the base64 encoding does. For this
+  reason, the base58 encoding is best suited to represent large, but finite,
+  integer integers in a compact way. The base58 encoding is not suited for
+  representing arbitrary large binary data, like the base64 encoding does
+
+*** Base58check encoding
+
 - Base58check encoding :: The base58check encoding appends an error detecting
-  checksum to a binary representation of a large number before applying the
+  checksum to the binary representation of a large integer before applying the
   base58 encoding to the resulting byte sequence. The error detecting checksum
-  is the double SHA256 hash of the original large number. The base58check
+  is the double SHA256 hash of the original large integer. The base58check
   encoding is designed for humans to enter addresses manually by copying from a
   visual source. The base58check encoding prevents a wallet from accepting a
   mistype address as a valid destination of funds that, otherwise, would be lost
 
 ** Design and implementation
 
+*** Base58 encode and decode
+
+- Base58 encode :: The =Base58Enc= function accepts a large integer in hex and
+  returns a base58 encoded string. The base58 encode function preserves the
+  leading zero bytes in the hex representation of a large integer and converts
+  the leading zero bytes into the corresponding leading ones in the base58
+  encoded string. The base58 encode function
+  - Set the initial quotient to the original large integer
+  - Iteratively divide the consecutive quotients by the radix 58 until the last
+    quotient is zero
+  - Convert the consecutive remainders of the division into the corresponding
+    base58 digits and collect the digits into a string
+  - Reverse the string to get the base58 representation of the large integer
+    without the leading zero bytes
+  - Preserve the leading =0x00= bytes in the hex representation of the original
+    integer by substituting every leading zero byte with the corresponding =1=
+    base58 digit that is prepended to the base58 encoded string
+  #+BEGIN_SRC go
+const alpha58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+var digit58 = func() map[uint8]int64 {
+  m := make(map[uint8]int64)
+  for i := range alpha58 {
+    m[alpha58[i]] = int64(i)
+  }
+  return m
+}()
+
+func strReverse(str string) string {
+  var rev strings.Builder
+  for i := len(str) - 1; i >= 0; i-- {
+    rev.WriteByte(str[i])
+  }
+  return rev.String()
+}
+
+var reLeadZero = regexp.MustCompile(`^0+`)
+
+func Base58Enc(hex []byte) string {
+  zero, base58 := big.NewInt(0), big.NewInt(58)
+  quot, rem := new(big.Int).SetBytes(hex), big.NewInt(0)
+  var rev strings.Builder
+  for quot.Cmp(zero) != 0 {
+    quot.DivMod(quot, base58, rem)
+    rev.WriteByte(alpha58[rem.Int64()])
+  }
+  leadZero := reLeadZero.FindString(fmt.Sprintf("%x", hex))
+  leadOne := strings.Repeat("1", len(leadZero) / 2)
+  str := leadOne + strReverse(rev.String())
+  return str
+}
+  #+END_SRC
+
+- Base58 decode :: The =Base58Dec= function accepts a base58 string and returns
+  the hex representation of large integer result. The base58 decode function
+  preserves the leading ones in the base58 encoded string and converts the
+  leading ones into the leading zero bytes in the hex representation of the
+  large integer result. An error is returned if the base58 string contains
+  symbols that are not in the base58 alphabet. The base58 decode function
+  - Set the large integer result to zero
+  - For each base58 digit from the base58 encoded string
+    - Lookup the decimal value of the base58 digit in the base58 digit to
+      decimal value map
+    - Return the invalid base58 digit error, if the symbol is not in the base58
+      alphabet
+    - Multiply the large integer result by the radix 58
+    - Add the decimal value of the current base58 digit to the large integer
+      result
+  - Preserve the leading =1= in the base58 encoded string by substituting every
+    leading one with the corresponding leading zero byte that is prepended to
+    the hex representation of the large integer result
+  #+BEGIN_SRC go
+var reLeadOne = regexp.MustCompile(`^1+`)
+
+func Base58Dec(str string) ([]byte, error) {
+  num, base58 := big.NewInt(0), big.NewInt(58)
+  for i := 0; i < len(str); i ++ {
+    digit, exist := digit58[str[i]]
+    if !exist {
+      return nil, fmt.Errorf("base58 decode: invalid digit: %c", str[i])
+    }
+    num.Mul(num, base58)
+    num.Add(num, big.NewInt(digit))
+  }
+  leadOne := reLeadOne.FindString(str)
+  leadZero := bytes.Repeat([]byte{0x0}, len(leadOne))
+  hex := append(leadZero, num.Bytes()...)
+  return hex, nil
+}
+  #+END_SRC
+
+*** Base58check encode and decode
+
+- Base58check encode :: The =Base58CheckEnc= function accepts the hex
+  representation of a large integer and returns the base58 encoded string. The
+  base58check encode function appends an error detecting checksum to the hex
+  representation of the large integer before encoding the resulting byte
+  sequence to base58. The base58check encode function
+  - Compute the error detecting checksum by applying the double SHA256 hash to
+    the hex representation of the large integer
+  - Append the first four bytes of the checksum to the hex representation of the
+    large integer
+  - Base58 encode the resulting byte sequence
+  #+BEGIN_SRC go
+func Base58CheckEnc(hex []byte) string {
+  csum := SHA256(SHA256(hex))
+  data := append(hex, csum[:4]...)
+  str := Base58Enc(data)
+  return str
+}
+  #+END_SRC
+
+- Base58check decode :: The =Base58CheckDec= function accepts a base58 encoded
+  string, verifies the error detecting checksum, and returns the hex
+  representation of the large integer if the checksum is correct. Otherwise, the
+  invalid checksum error is returned. The base58check decode function
+  - Base58 decode the base58 encoded string
+  - Take the last 4 bytes of the resulting byte sequence as a checksum and the
+    remaining prefix bytes as the hex representation of the large integer
+  - Compute the error detecting checksum by applying the double SHA256 hash to
+    the hex representation of the large integer
+  - Verify that the computed checksum is equal to the provided checksum.
+    Otherwise, return the invalid checksum error
+  - Return the hex representation of the large integer
+  #+BEGIN_SRC go
+func Base58CheckDec(str string) ([]byte, error) {
+  data, err := Base58Dec(str)
+  if err != nil {
+    return nil, err
+  }
+  l := len(data) - 4
+  hex, csum := data[:l], data[l:]
+  hash := SHA256(SHA256(hex))
+  if !bytes.Equal(hash[:4], csum) {
+    return nil, fmt.Errorf("base58check decode: invalid checksum")
+  }
+  return hex, nil
+}
+  #+END_SRC
+
 ** Testing and usage
+
+*** Testing the base58 and the base58check encode and decode
+
+Test the base58 and the base58check encode and decode Go functions
+#+BEGIN_SRC nushell
+go test -v -cover -coverprofile=coverage.cov './...' -run Base58
+#+END_SRC
+
+Test the base58 and the base58check encode and decode CLI wallet commands
+#+BEGIN_SRC nushell
+go build -o wallet; ./crypto/cli-test.nu
+#+END_SRC
+
+*** Using the =base58= =encode= and =decode= CLI commands
+
+Show the help and usage instructions of the =wallet base58= command
+#+BEGIN_SRC nushell
+./wallet base58
+# NAME:
+#    wallet base58 - Encode and decode base58
+
+# USAGE:
+#    wallet base58 [command [command options]]
+
+# COMMANDS:
+#    encode  Encode base58
+#              stdin: a large number in hex
+#              stdout: a base58 encoded string
+#    decode  Decode base58
+#              stdin: a base58 encoded string
+#              stdout: a large number in hex
+
+# OPTIONS:
+#    --help, -h  show help
+#+END_SRC
+
+Base58 encode zero, one, and a random value. Note, that the base58 encoded
+random value is shorter that the hex equivalent. Base58 decode the encoded
+values and confirm that the original hex equivalents are returned
+#+BEGIN_SRC nushell
+$env.PATH = $env.PATH | prepend ("." | path expand)
+let zero = "00"
+let encZero = $zero | wallet base58 encode
+print $zero $encZero
+# 00
+# 1
+let one = "01"
+let encOne = $one | wallet base58 encode
+print $one $encOne
+# 01
+# 2
+let rnd = open /dev/urandom | first 32 | wallet keccak256
+let encRnd = $rnd | wallet base58 encode
+print $rnd $encRnd
+# faf6e85fd57a2bff69f9d6c5c12f1bc03a24c72a5ea1b2c2c38dc68002f0a822
+# HtfHsVmHKMYJYRcZJXnyvxXZfzA72R6cBjYswMobepJ5
+$encZero | wallet base58 decode
+# 00
+$encOne | wallet base58 decode
+# 01
+$encRnd | wallet base58 decode
+# faf6e85fd57a2bff69f9d6c5c12f1bc03a24c72a5ea1b2c2c38dc68002f0a822
+#+END_SRC
+
+*** Using the =base58chk= =encode= and =decode= CLI commands
+
+Show the help and usage instructions of the =wallet base58= command
+#+BEGIN_SRC nushell
+./wallet base58chk
+# NAME:
+#    wallet base58chk - Encode and decode base58check
+
+# USAGE:
+#    wallet base58chk [command [command options]]
+
+# COMMANDS:
+#    encode  Encode base58check
+#              stdin: a large number in hex
+#              stdout: a base58check encoded string
+#    decode  Decode base58check
+#              stdin: a base58check encoded string
+#              stdout: a large number in hex
+
+# OPTIONS:
+#    --help, -h  show help
+#+END_SRC
+
+Base58check encode zero, one, and a random value. Note, that the base58check
+encoded random value is shorter that the hex equivalent. Base58check decode the
+encoded values and confirm that the original hex equivalents are returned.
+Confirm that the invalid checksum error is returned when decoding a modified
+base58check encoded zero
+#+BEGIN_SRC nushell
+$env.PATH = $env.PATH | prepend ("." | path expand)
+let zero = "00"
+let encZero = $zero | wallet base58chk encode
+print $zero $encZero
+# 00
+# 1Wh4bh
+let one = "01"
+let encOne = $one | wallet base58chk encode
+print $one $encOne
+# 01
+# BXvDbH
+let rnd = open /dev/urandom | first 32 | wallet keccak256
+let encRnd = $rnd | wallet base58chk encode
+print $rnd $encRnd
+# 241214ae6da9d0185db5e98c0e3f24ee9ca9965675ce7412e3cca0de18d55134
+# GtNo8csUfhQR54dNXzMRV6FadxFKXQB8CgT1gGGsHjy57TChE
+$encZero | wallet base58chk decode
+# 00
+$encOne | wallet base58chk decode
+# 01
+$encRnd | wallet base58chk decode
+# 241214ae6da9d0185db5e98c0e3f24ee9ca9965675ce7412e3cca0de18d55134
+$encZero + "x" | wallet base58chk decode
+# base58check decode: invalid checksum
+#+END_SRC
