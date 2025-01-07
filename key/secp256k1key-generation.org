@@ -4,6 +4,19 @@
 :END:
 
 :CONTENTS:
+- [[#concepts-and-purpose][Concepts and purpose]]
+  - [[#secp256k1-private-key][secp256k1 private key]]
+  - [[#secp256k1-public-key][secp256k1 public key]]
+  - [[#ethereum-address][Ethereum address]]
+- [[#design-and-implementation][Design and implementation]]
+  - [[#pubkey-type][PubKey type]]
+  - [[#prvkey-type][PrvKey type]]
+  - [[#generate-secp256k1-key-pair][Generate secp256k1 key pair]]
+  - [[#derive-secp256k1-public-key-from-private-key][Derive secp256k1 public key from private key]]
+  - [[#derive-ethereum-address-from-public-key][Derive Ethereum address from public key]]
+- [[#testing-and-usage][Testing and usage]]
+  - [[#testing-secp256k1-key-generate-derive-and-address][Testing secp256k1 key generate, derive, and address]]
+  - [[#using-key-generate-derive-and-address-cli-commands][Using key generate, derive, and address CLI commands]]
 :END:
 
 ** Concepts and purpose
