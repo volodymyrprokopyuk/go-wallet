@@ -26,11 +26,11 @@ func keyGenerateCmd() *cli.Command {
     Usage: `Generate a secp256k1 key pair
   stdout: a key pair in hex in YAML`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
-      key, err := keyGenerate()
+      key, err := KeyGenerate()
       if err != nil {
         return err
       }
-      fmt.Printf("%s\n", key.yamlEncode())
+      fmt.Printf("%s\n", key.YAMLEncode())
       return nil
     },
   }
@@ -49,8 +49,8 @@ func keyDeriveCmd() *cli.Command {
       if err != nil {
         return err
       }
-      key := keyDerive(prv)
-      fmt.Printf("%s\n", key.yamlEncode())
+      key := KeyDerive(prv)
+      fmt.Printf("%s\n", key.YAMLEncode())
       return nil
     },
   }
@@ -69,7 +69,7 @@ func keyAddressCmd() *cli.Command {
       if err != nil {
         return err
       }
-      addr := keyAddress(pub)
+      addr := KeyAddress(pub)
       fmt.Printf("%x\n", addr)
       return nil
     },
@@ -159,7 +159,7 @@ func addressEncodeCmd() *cli.Command {
       if err != nil {
         return err
       }
-      encAddr := addressEncode(addr)
+      encAddr := AddressEncode(addr)
       fmt.Printf("%s\n", encAddr)
       return nil
     },
@@ -180,7 +180,7 @@ func addressVerifyCmd() *cli.Command {
         return err
       }
       valid := true
-      err = addressVerify(addr)
+      err = AddressVerify(addr)
       if err != nil {
         fmt.Fprintf(os.Stderr, "%s\n", err)
         valid = false
@@ -210,7 +210,7 @@ func mnemonicGenerateCmd() *cli.Command {
   stdout: a mnemonic string that encodes the randomly generated seed`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
       bits := cmd.Int("bits")
-      mnem, err := mnemonicGenerate(int(bits))
+      mnem, err := MnemonicGenerate(int(bits))
       if err != nil {
         return err
       }
@@ -238,7 +238,7 @@ func mnemonicDeriveCmd() *cli.Command {
       if err != nil {
         return err
       }
-      mnem, err := mnemonicDerive(int(bits), seed)
+      mnem, err := MnemonicDerive(int(bits), seed)
       if err != nil {
         return err
       }
@@ -267,7 +267,7 @@ func mnemonicVerifyCmd() *cli.Command {
         return err
       }
       valid := true
-      err = mnemonicVerify(string(mnem))
+      err = MnemonicVerify(string(mnem))
       if err != nil {
         fmt.Fprintf(os.Stderr, "%s\n", err)
         valid = false
@@ -304,7 +304,7 @@ func seedDeriveCmd() *cli.Command {
       if err != nil {
         return err
       }
-      seed := seedDerive(string(mnem), pass)
+      seed := SeedDerive(string(mnem), pass)
       fmt.Printf("%x\n", seed)
       return nil
     },
@@ -329,8 +329,8 @@ func masterDeriveCmd() *cli.Command {
       if err != nil {
         return err
       }
-      ekey := masterDerive(seed)
-      fmt.Printf("%s\n", ekey.yamlEncode())
+      ekey := MasterDerive(seed)
+      fmt.Printf("%s\n", ekey.YAMLEncode())
       return nil
     },
   }
@@ -351,8 +351,8 @@ extended private key and a key index
       if err != nil {
         return err
       }
-      ekey := privateDerive(prve, uint8(depth), uint32(index))
-      fmt.Printf("%s\n", ekey.yamlEncode())
+      ekey := PrivateDerive(prve, uint8(depth), uint32(index))
+      fmt.Printf("%s\n", ekey.YAMLEncode())
       return nil
     },
   }
@@ -381,8 +381,8 @@ extended private key and a key index
       if err != nil {
         return err
       }
-      ekey := hardenedDerive(prve, uint8(depth), uint32(index))
-      fmt.Printf("%s\n", ekey.yamlEncode())
+      ekey := HardenedDerive(prve, uint8(depth), uint32(index))
+      fmt.Printf("%s\n", ekey.YAMLEncode())
       return nil
     },
   }
@@ -412,8 +412,8 @@ extended public key and a key index
       if err != nil {
         return err
       }
-      ekey := publicDerive(pube, uint8(depth), uint32(index))
-      fmt.Printf("%s\n", ekey.yamlEncode())
+      ekey := PublicDerive(pube, uint8(depth), uint32(index))
+      fmt.Printf("%s\n", ekey.YAMLEncode())
       return nil
     },
   }
@@ -440,11 +440,11 @@ func ekeyDecodeCmd() *cli.Command {
       if err != nil {
         return err
       }
-      ekey, err := ekeyDecode(str)
+      ekey, err := EkeyDecode(str)
       if err != nil {
         return err
       }
-      fmt.Printf("%s\n", ekey.yamlEncode())
+      fmt.Printf("%s\n", ekey.YAMLEncode())
       return nil
     },
   }

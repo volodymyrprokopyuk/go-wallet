@@ -9,7 +9,7 @@ import (
 	"github.com/volodymyrprokopyuk/go-wallet/crypto"
 )
 
-func addressEncode(addr []byte) string {
+func AddressEncode(addr []byte) string {
   hexAddr := fmt.Sprintf("%x", addr)
   hash := crypto.Keccak256([]byte(hexAddr))
   hexHash := fmt.Sprintf("%x", hash)
@@ -30,7 +30,7 @@ func addressEncode(addr []byte) string {
 var reUpper = regexp.MustCompile(`[A-F0-9]`)
 var reLower = regexp.MustCompile(`[a-f0-9]`)
 
-func addressVerify(hexAddr string) error {
+func AddressVerify(hexAddr string) error {
   hash := crypto.Keccak256([]byte(strings.ToLower(hexAddr)))
   hexHash := fmt.Sprintf("%x", hash)
   chAddr := strings.Split(hexAddr, "")

@@ -43,7 +43,7 @@ var mapDict = func() map[string]uint16 {
   return dict
 }()
 
-func mnemonicGenerate(bits int) (string, error) {
+func MnemonicGenerate(bits int) (string, error) {
   errh := "mnemonic generate"
   if !slices.Contains(seedLens, bits) {
     return "", fmt.Errorf("%s: invalid bit length: %d", errh, bits)
@@ -53,10 +53,10 @@ func mnemonicGenerate(bits int) (string, error) {
   if err != nil {
     return "", err
   }
-  return mnemonicDerive(bits, seed)
+  return MnemonicDerive(bits, seed)
 }
 
-func mnemonicDerive(bits int, seed []byte) (string, error) {
+func MnemonicDerive(bits int, seed []byte) (string, error) {
   errh := "mnemonic derive"
   if !slices.Contains(seedLens, bits) {
     return "", fmt.Errorf("%s: invalid bit length: %d", errh, bits)
@@ -98,7 +98,7 @@ func setLeadBits(bits int) byte {
   return mask
 }
 
-func mnemonicVerify(mnem string) error {
+func MnemonicVerify(mnem string) error {
   errh := "mnemonic verify"
   words := strings.Split(mnem, " ")
   wordLen := len(words)

@@ -16,7 +16,7 @@ var (
   xpubVer = []byte{0x04, 0x88, 0xb2, 0x1e}
 )
 
-func ekeyEncode(
+func EkeyEncode(
   version []byte, depth uint8, parent []byte, index uint32, code, key []byte,
 ) string {
   var data bytes.Buffer
@@ -45,7 +45,7 @@ func ekeyEncode(
   return str
 }
 
-func ekeyDecode(str string) (*extKey, error) {
+func EkeyDecode(str string) (*ExtKey, error) {
   data, err := crypto.Base58Dec(str)
   if err != nil {
     return nil, err
@@ -57,58 +57,58 @@ func ekeyDecode(str string) (*extKey, error) {
   code := data[13:45]
   if slices.Equal(version, xprvVer) {
     prv := data[46:78]
-    key := keyDerive(prv)
-    ekey := &extKey{prvKey: *key, code: code, depth: depth, index: index}
-    ekey.xprv = ekeyEncode(xprvVer, depth, parent, index, code, ekey.prv)
-    ekey.xpub = ekeyEncode(xpubVer, depth, parent, index, code, ekey.pubc)
+    key := KeyDerive(prv)
+    ekey := &ExtKey{PrvKey: *key, Code: code, Depth: depth, Index: index}
+    ekey.Xprv = EkeyEncode(xprvVer, depth, parent, index, code, ekey.Prv)
+    ekey.Xpub = EkeyEncode(xpubVer, depth, parent, index, code, ekey.Pubc)
     return ekey, nil
   } else {
     pubc := data[45:78]
     pubx, puby := ecc.UnmarshalCompressed(ecc.P256k1(), pubc)
-    ekey := newExtPubKey(pubx, puby, code, depth, index)
-    ekey.xpub = ekeyEncode(xpubVer, depth, parent, index, code, ekey.pubc)
+    ekey := NewExtPubKey(pubx, puby, code, depth, index)
+    ekey.Xpub = EkeyEncode(xpubVer, depth, parent, index, code, ekey.Pubc)
     return ekey, nil
   }
 }
 
-func seedDerive(mnemonic, passphrase string) []byte {
+func SeedDerive(mnemonic, passphrase string) []byte {
   salt := []byte("mnemonic" + passphrase)
   seed := crypto.PBKDF2SHA512([]byte(mnemonic), salt, 2048, 64)
   return seed
 }
 
-func masterDerive(seed []byte) *extKey {
+func MasterDerive(seed []byte) *ExtKey {
   depth, index := uint8(0), uint32(0)
   hmac := crypto.HMACSHA512(seed, []byte("Bitcoin seed"))
   prv, code := hmac[:32], hmac[32:]
-  key := keyDerive(prv)
-  ekey := &extKey{prvKey: *key, code: code, depth: depth, index: index}
-  ekey.xprv = ekeyEncode(xprvVer, depth, nil, index, code, prv)
-  ekey.xpub = ekeyEncode(xpubVer, depth, nil, index, code, ekey.pubc)
+  key := KeyDerive(prv)
+  ekey := &ExtKey{PrvKey: *key, Code: code, Depth: depth, Index: index}
+  ekey.Xprv = EkeyEncode(xprvVer, depth, nil, index, code, prv)
+  ekey.Xpub = EkeyEncode(xpubVer, depth, nil, index, code, ekey.Pubc)
   return ekey
 }
 
-func privateDerive(prve []byte, depth uint8, index uint32) *extKey {
+func PrivateDerive(prve []byte, depth uint8, index uint32) *ExtKey {
   parPrv, parCode := prve[:32], prve[32:]
-  parKey := keyDerive(parPrv)
+  parKey := KeyDerive(parPrv)
   idx := make([]byte, 4)
   binary.BigEndian.PutUint32(idx, index)
-  data := append(parKey.pubc, idx...) // parent public compressed
+  data := append(parKey.Pubc, idx...) // parent public compressed
   hmac := crypto.HMACSHA512(data, parCode)
   prv, code := hmac[:32], hmac[32:]
   prvi := new(big.Int).SetBytes(prv)
   prvi.Add(prvi, new(big.Int).SetBytes(parPrv))
   prvi.Mod(prvi, ecc.P256k1().Params().N)
-  key := keyDerive(prvi.Bytes())
-  ekey := &extKey{prvKey: *key, code: code, depth: depth, index: index}
-  ekey.xprv = ekeyEncode(xprvVer, depth, parKey.pubc, index, code, ekey.prv)
-  ekey.xpub = ekeyEncode(xpubVer, depth, parKey.pubc, index, code, ekey.pubc)
+  key := KeyDerive(prvi.Bytes())
+  ekey := &ExtKey{PrvKey: *key, Code: code, Depth: depth, Index: index}
+  ekey.Xprv = EkeyEncode(xprvVer, depth, parKey.Pubc, index, code, ekey.Prv)
+  ekey.Xpub = EkeyEncode(xpubVer, depth, parKey.Pubc, index, code, ekey.Pubc)
   return ekey
 }
 
-func hardenedDerive(prve []byte, depth uint8, index uint32) *extKey {
+func HardenedDerive(prve []byte, depth uint8, index uint32) *ExtKey {
   parPrv, parCode := prve[:32], prve[32:]
-  parKey := keyDerive(parPrv) // only for xprv and xpub
+  parKey := KeyDerive(parPrv) // only for xprv and xpub
   index += uint32(1 << 31) // hardened key index
   idx := make([]byte, 4)
   binary.BigEndian.PutUint32(idx, index)
@@ -119,14 +119,14 @@ func hardenedDerive(prve []byte, depth uint8, index uint32) *extKey {
   prvi := new(big.Int).SetBytes(prv)
   prvi.Add(prvi, new(big.Int).SetBytes(parPrv))
   prvi.Mod(prvi, ecc.P256k1().Params().N)
-  key := keyDerive(prvi.Bytes())
-  ekey := &extKey{prvKey: *key, code: code, depth: depth, index: index}
-  ekey.xprv = ekeyEncode(xprvVer, depth, parKey.pubc, index, code, ekey.prv)
-  ekey.xpub = ekeyEncode(xpubVer, depth, parKey.pubc, index, code, ekey.pubc)
+  key := KeyDerive(prvi.Bytes())
+  ekey := &ExtKey{PrvKey: *key, Code: code, Depth: depth, Index: index}
+  ekey.Xprv = EkeyEncode(xprvVer, depth, parKey.Pubc, index, code, ekey.Prv)
+  ekey.Xpub = EkeyEncode(xpubVer, depth, parKey.Pubc, index, code, ekey.Pubc)
   return ekey
 }
 
-func publicDerive(pube []byte, depth uint8, index uint32) *extKey {
+func PublicDerive(pube []byte, depth uint8, index uint32) *ExtKey {
   parPubc, parCode := pube[:33], pube[33:]
   idx := make([]byte, 4)
   binary.BigEndian.PutUint32(idx, index)
@@ -139,7 +139,7 @@ func publicDerive(pube []byte, depth uint8, index uint32) *extKey {
   pub.Curve = ecc.P256k1()
   pub.X, pub.Y = pub.ScalarBaseMult(pb)
   pubx, puby := pub.Add(pub.X, pub.Y, parX, parY)
-  ekey := newExtPubKey(pubx, puby, code, depth, index)
-  ekey.xpub = ekeyEncode(xpubVer, depth, parPubc, index, code, ekey.pubc)
+  ekey := NewExtPubKey(pubx, puby, code, depth, index)
+  ekey.Xpub = EkeyEncode(xpubVer, depth, parPubc, index, code, ekey.Pubc)
   return ekey
 }
