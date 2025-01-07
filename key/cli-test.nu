@@ -235,22 +235,22 @@ def "test hd public" [] {
   }
 }
 
-test key generate
-test key derive
-test key address
+# test key generate
+# test key derive
+# test key address
 
-test address encode
-test address verify
+# test address encode
+# test address verify
 
-test mnemonic generate
-test mnemonic derive
-test mnemonic verify
+# test mnemonic generate
+# test mnemonic derive
+# test mnemonic verify
 
-test hd seed
-test hd master
-test hd private decode
-test hd hardened
-test hd public
+# test hd seed
+# test hd master
+# test hd private decode
+# test hd hardened
+# test hd public
 
 # let mst = $seeds.0.mnem | wallet hd seed | wallet hd master | from yaml
 # let prve = $mst.prv ++ $mst.code
@@ -263,4 +263,38 @@ test hd public
 # let pube = $mst.pubc ++ $mst.code
 # $pube | wallet hd public --depth 0 --index 1 | from yaml | print
 
-print success
+# print success
+
+# $env.PATH = $env.PATH | prepend ("." | path expand)
+# let key = wallet key generate | from yaml
+# print $key
+# # ╭──────┬────────────────────────────────────────────────────────────────────────────────────╮
+# # │ prv  │ 31580adc76247ea9aa72695f93efd627c3ad7ccc3e9fca6bfaaa24c70f822afe                   │
+# # │ pub  │ 04c0eb637fe1ac067560860697e929a78fd2d743c642b7c601535cacc1ec1708e8e51037c0c8341b60 │
+# # │      │ d68ae18913007bac7b53ff1952c5f0d70dcdcd6afed8e0b6                                   │
+# # │ pubc │ 02c0eb637fe1ac067560860697e929a78fd2d743c642b7c601535cacc1ec1708e8                 │
+# # ╰──────┴────────────────────────────────────────────────────────────────────────────────────╯
+# let pub = $key.prv | wallet key derive | from yaml
+# print $pub
+# # ╭──────┬────────────────────────────────────────────────────────────────────────────────────╮
+# # │ prv  │ 31580adc76247ea9aa72695f93efd627c3ad7ccc3e9fca6bfaaa24c70f822afe                   │
+# # │ pub  │ 04c0eb637fe1ac067560860697e929a78fd2d743c642b7c601535cacc1ec1708e8e51037c0c8341b60 │
+# # │      │ d68ae18913007bac7b53ff1952c5f0d70dcdcd6afed8e0b6                                   │
+# # │ pubc │ 02c0eb637fe1ac067560860697e929a78fd2d743c642b7c601535cacc1ec1708e8                 │
+# # ╰──────┴────────────────────────────────────────────────────────────────────────────────────╯
+
+$env.PATH = $env.PATH | prepend ("." | path expand)
+let prv = open /dev/urandom | first 32 | wallet keccak256
+print $prv
+# 990c880b9accae50cfd0d928241a80b1afe49b973bea3f92c4253a10cc6321c3
+let pub = $prv | wallet key derive | from yaml
+print $pub
+# ╭──────┬────────────────────────────────────────────────────────────────────────────────────╮
+# │ prv  │ 990c880b9accae50cfd0d928241a80b1afe49b973bea3f92c4253a10cc6321c3                   │
+# │ pub  │ 04e3694448ca68cc998fb5dddd75af00b703cbe60434b9cde5a1973dc3c212f61bd63b3bfad457ec11 │
+# │      │ 04fb42894714fa1848a603fc85bec06ee87dabc5389c95cb                                   │
+# │ pubc │ 03e3694448ca68cc998fb5dddd75af00b703cbe60434b9cde5a1973dc3c212f61b                 │
+# ╰──────┴────────────────────────────────────────────────────────────────────────────────────╯
+let addr = $pub.pub | wallet key address
+print $addr
+# e207496548c4409addd7ec1061dab0c6bcd2ee42

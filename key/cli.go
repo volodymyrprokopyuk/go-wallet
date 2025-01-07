@@ -12,7 +12,7 @@ import (
 func KeyCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "key",
-    Usage: "Generate a secp256k1 key pair, sign a message, verify a signature",
+    Usage: "Generate a secp256k1 key pair, sign a transaction, verify a signature",
     Commands: []*cli.Command{
       keyGenerateCmd(), keyDeriveCmd(), keyAddressCmd(),
     },
@@ -24,7 +24,7 @@ func keyGenerateCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "generate",
     Usage: `Generate a secp256k1 key pair
-  stdout: a key pair in hex in YAML`,
+  stdout: a secp256k1 key pair in hex in YAML`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
       key, err := KeyGenerate()
       if err != nil {
@@ -40,9 +40,9 @@ func keyGenerateCmd() *cli.Command {
 func keyDeriveCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "derive",
-    Usage: `Derive a secp256k1 public key from an external private key
-  stdin: an external private key in hex
-  stdout: a key pair in hex in YAML`,
+    Usage: `Derive a secp256k1 public key from an external secp256k1 private key
+  stdin: an external secp256k1 private key in hex
+  stdout: a secp256k1 key pair in hex in YAML`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
       var prv []byte
       _, err := fmt.Scanf("%x", &prv)
@@ -60,8 +60,8 @@ func keyDeriveCmd() *cli.Command {
 func keyAddressCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "address",
-    Usage: `Derive an Ethereum address from a public key
-  stdin: a public key in hex
+    Usage: `Derive an Ethereum address from a secp256k1 public key
+  stdin: a secp256k1 public key in hex
   stdout: an Ethereum address in hex`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
       var pub []byte
