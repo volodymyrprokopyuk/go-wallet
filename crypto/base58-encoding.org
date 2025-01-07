@@ -11,9 +11,9 @@
   - [[#base58-encode-and-decode][Base58 encode and decode]]
   - [[#base58check-encode-and-decode][Base58check encode and decode]]
 - [[#testing-and-usage][Testing and usage]]
-  - [[#testing-the-base58-and-the-base58check-encode-and-decode][Testing the base58 and the base58check encode and decode]]
-  - [[#using-base58-encode-and-decode-cli-commands][Using base58 encode and decode CLI commands]]
-  - [[#using-base58chk-encode-and-decode-cli-commands][Using base58chk encode and decode CLI commands]]
+  - [[#testing-base58-and-base58check-encode-and-decode][Testing base58 and base58check encode and decode]]
+  - [[#using-base58-encode-and-base58-decode-cli-commands][Using base58 encode and base58 decode CLI commands]]
+  - [[#using-base58chk-encode-and-base58chk-decode-cli-commands][Using base58chk encode and base58chk decode CLI commands]]
 :END:
 
 ** Concepts and purpose
@@ -197,19 +197,19 @@ func Base58CheckDec(str string) ([]byte, error) {
 
 ** Testing and usage
 
-*** Testing the base58 and the base58check encode and decode
+*** Testing base58 and base58check encode and decode
 
 Test the base58 and the base58check encode and decode Go functions
 #+BEGIN_SRC nushell
 go test -v -cover -coverprofile=coverage.cov './...' -run Base58
 #+END_SRC
 
-Test the base58 and the base58check encode and decode CLI wallet commands
+Test the base58 and the base58check encode and decode CLI commands
 #+BEGIN_SRC nushell
 go build -o wallet; ./crypto/cli-test.nu
 #+END_SRC
 
-*** Using =base58= =encode= and =decode= CLI commands
+*** Using =base58 encode= and =base58 decode= CLI commands
 
 Show the help and usage instructions of the =wallet base58= command
 #+BEGIN_SRC nushell
@@ -260,9 +260,9 @@ $encRnd | wallet base58 decode
 # faf6e85fd57a2bff69f9d6c5c12f1bc03a24c72a5ea1b2c2c38dc68002f0a822
 #+END_SRC
 
-*** Using =base58chk= =encode= and =decode= CLI commands
+*** Using =base58chk encode= and =base58chk decode= CLI commands
 
-Show the help and usage instructions of the =wallet base58= command
+Show the help and usage instructions of the =wallet base58chk= command
 #+BEGIN_SRC nushell
 ./wallet base58chk
 # NAME:

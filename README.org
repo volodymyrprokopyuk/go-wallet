@@ -1,4 +1,5 @@
 * Go wallet
 
 - [[/crypto/base58-encoding.org][Base58 and base58check encoding]]
-- [[/crypto/secp256k1key-generation.org][Secp256k1 key generation]]
+- [[/key/secp256k1key-generation.org][Secp256k1 key generation]]
+- [[/key/address-encoding.org][ERC-55 Ethereum address encoding]]

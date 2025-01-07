@@ -1,115 +1,139 @@
-* ERC-55 address checksum
+* ERC-55 Ethereum address encoding
 :PROPERTIES:
 :TOC: :include descendants
 :END:
 
 :CONTENTS:
 - [[#concepts-and-purpose][Concepts and purpose]]
+  - [[#erc-55-ethereum-address-encoding][ERC-55 Ethereum address encoding]]
 - [[#design-and-implementation][Design and implementation]]
+  - [[#address-checksum][Address checksum]]
+  - [[#address-checksum-verification][Address checksum verification]]
 - [[#testing-and-usage][Testing and usage]]
-  - [[#using--address-checksum-and-address-verify-functions][Using  address checksum and address verify functions]]
-  - [[#testing-address-checksum-and-address-verify-function][Testing address checksum and address verify function]]
+  - [[#testing-address-encode-and-address-verify-cli-commands][Testing address encode and address verify CLI commands]]
+  - [[#using-address-encode-and-address-verify-cli-commands][Using address encode and address verify CLI commands]]
 :END:
 
 ** Concepts and purpose
 
-[[https://eips.ethereum.org/EIPS/eip-55][ERC-55 mixed-case checksum address encoding]]
+*** ERC-55 Ethereum address encoding
 
-- ERC-55 address checksum :: The ERC-55 address checksum is a
+[[https://eips.ethereum.org/EIPS/eip-55][ERC-55 Mixed-case checksum address encoding]]
+
+- ERC-55 Ethereum address encoding :: The ERC-55 Ethereum address encoding is a
   backward-compatible, mixed-case encoding of case-insensitive Ethereum
   addresses that incorporates a checksum into the now case-sensitive address by
-  changing the capitalization of hex digit letters of the address. The address
-  checksum conveys additional information without changing the semantic address
-  value that is used to detect errors and protect against mistakes with the
-  99.986% accuracy
+  changing the capitalization of hex digit letters of an Ethereum address. The
+  address encoding conveys error-detecting information without changing the
+  semantic address value. The address encoding is used to detect errors and
+  protect against mistakes with the 99.986% accuracy
 
 ** Design and implementation
 
-- Address checksum :: The =address checksum= function encodes an address to
-  incorporate an error detecting checksum. The address checksum function
-  - Compute the keccak256 hash of the address converted to the lower case
-  - Upper case each character of the address if the hex value of the
-    corresponding character of the hash is greater than or equal to 8, leaving
-    other characters of the address unchanged
-  - Return the encoded mixed-case address
-    #+BEGIN_SRC nushell
-  export def "address checksum" []: string -> string {
-    let addr = $in | split chars
-    let hash = $in | str downcase | hash keccak256 | split chars
-    $addr | zip $hash | each {
-      let a = $in.0
-      let h = $in.1 | into int --radix 16
-      if ($h >= 8) { $a | str upcase } else { $a }
-    } | str join
-  }
-    #+END_SRC
-- Address verify :: The =address verify= function verifies that the encoded
-  mixed-case address does not have errors. The address verify function
-  - Compute the keccak256 hash of the address converted to the lower case
-  - Check that each character of the encoded address is in the upper case if the
-    hex value of the corresponding char of the hash is greater than or equal to
-    8, and is in the lower case otherwise
-  - Return true if the above conditions are hold for all characters of the
-    encoded address, or false otherwise
-    #+BEGIN_SRC nushell
-  export def "address verify" []: string -> bool {
-    let addr = $in | split chars
-    let hash = $in | str downcase | hash keccak256 | split chars
-    $addr | zip $hash | all {
-      let a = $in.0
-      let h = $in.1 | into int --radix 16
-      if ($h >= 8) { $a =~ '[A-F0-9]' } else { $a =~ '[a-z0-9]' }
+*** Address checksum
+
+- Address checksum :: The =AddressEncode= function encodes an Ethereum address
+  and incorporates an error detecting checksum. The address encode function
+  - Convert the address into a lower case hex string
+  - Compute the keccak256 hash of the address hex string
+  - Convert the keccak256 hash into a lower case hex string
+  - For each character of the address hex string
+    - Capitalize each character of the address hex string if the hex value of
+      the corresponding character of the hash hex string is greater than or
+      equal to 8, leaving other characters of the address hex string unchanged
+  - Return the encoded mixed-case address with the incorporated checksum
+  #+BEGIN_SRC go
+func AddressEncode(addr []byte) string {
+  hexAddr := fmt.Sprintf("%x", addr)
+  hash := crypto.Keccak256([]byte(hexAddr))
+  hexHash := fmt.Sprintf("%x", hash)
+  chAddr := strings.Split(hexAddr, "")
+  chHash := strings.Split(hexHash, "")
+  var encAddr strings.Builder
+  for i := range chAddr {
+    h, _ := strconv.ParseInt(chHash[i], 16, 8)
+    a := chAddr[i]
+    if h >= 8 {
+      a = strings.ToUpper(a)
     }
+    encAddr.WriteString(a)
+  }
+  return encAddr.String()
+}
+  #+END_SRC
+
+*** Address checksum verification
+
+- Address checksum verification :: The =AddressVerify= function verifies that
+  the encoded mixed-case Ethereum address does not have errors. The address
+  verify function
+  - Convert the address into a lower case hex string
+  - Compute the keccak256 hash of the address hex string
+  - Convert the keccak256 hash into a lower case hex string
+  - For each character of the address hex string
+    - Check that each character of the encoded address hex string is in the
+      upper case if the hex value of the corresponding character of the hash hex
+      string is greater than or equal to 8, and is in the lower case otherwise
+  - Return true if the above conditions are hold for all characters of the
+    encoded address hex string, or false otherwise
+    #+BEGIN_SRC go
+  var reUpper = regexp.MustCompile(`[A-F0-9]`)
+  var reLower = regexp.MustCompile(`[a-f0-9]`)
+
+  func AddressVerify(hexAddr string) error {
+    hash := crypto.Keccak256([]byte(strings.ToLower(hexAddr)))
+    hexHash := fmt.Sprintf("%x", hash)
+    chAddr := strings.Split(hexAddr, "")
+    chHash := strings.Split(hexHash, "")
+    for i := range hexAddr {
+      h, _ := strconv.ParseInt(chHash[i], 16, 8)
+      a := chAddr[i]
+      if h >= 8 && !reUpper.MatchString(a) || h < 8 && !reLower.MatchString(a) {
+        return fmt.Errorf("address verify: invalid checksum")
+      }
+    }
+    return nil
   }
     #+END_SRC
 
 ** Testing and usage
 
-*** Using  =address checksum= and =address verify= functions
+*** Testing =address encode= and =address verify= CLI commands
 
-- Generate a secp256k1 key pair
-  #+BEGIN_SRC nushell
-key generate --private key.pem --public pub.pem
-# -----BEGIN EC PRIVATE KEY-----
-# MHQCAQEEIN3E438V6ruPEYcTYhLy8tNtpND0DGuzvKJS3b8MIRNAoAcGBSuBBAAK
-# oUQDQgAEKWo8tnTLqEMSBLq4lPU43dA0nGadeM0ANVpnC28oHtG9UduGSujB4wx4
-# VA5dyFbf/QARQrnr0ff7lo7HbyvARQ==
-# -----END EC PRIVATE KEY-----
-# -----BEGIN PUBLIC KEY-----
-# MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEKWo8tnTLqEMSBLq4lPU43dA0nGadeM0A
-# NVpnC28oHtG9UduGSujB4wx4VA5dyFbf/QARQrnr0ff7lo7HbyvARQ==
-# -----END PUBLIC KEY-----
-  #+END_SRC
-- Print the secp256k1 key pair information
-  #+BEGIN_SRC nushell
-"key.pem" | open | key print
-# ╭─────────┬──────────────────────────────────────────────────────────────────╮
-# │ key     │ ddc4e37f15eabb8f1187136212f2f2d36da4d0f40c6bb3bca252ddbf0c211340 │
-# │ pubx    │ 296a3cb674cba8431204bab894f538ddd0349c669d78cd00355a670b6f281ed1 │
-# │ puby    │ bd51db864ae8c1e30c78540e5dc856dffd001142b9ebd1f7fb968ec76f2bc045 │
-# │ address │ 4a8babaf85fef398358be49d48d9857ae9837010                         │
-# ╰─────────┴──────────────────────────────────────────────────────────────────╯
-  #+END_SRC
-- Compute the Ethereum address from the public key
-  #+BEGIN_SRC nushell
-"key.pem" | open | key print | get address
-# 4a8babaf85fef398358be49d48d9857ae9837010
-  #+END_SRC
-- Encode the Ethereum address and incorporate the error detecting checksum
-  #+BEGIN_SRC nushell
-"key.pem" | open | key print | get address | address checksum
-# 4a8bAbaf85fEF398358Be49d48d9857Ae9837010
-  #+END_SRC
-- Verify that the encoded Ethereum address does not have errors with the 99.986%
-  accuracy
-  #+BEGIN_SRC nushell
-"key.pem" | open | key print | get address | address checksum | address verify
+#+BEGIN_SRC nushell
+go build -o wallet; ./key/cli-test.nu
+#+END_SRC
+
+*** Using =address encode= and =address verify= CLI commands
+
+Generate a secp256k1 key pair. Compute the Ethereum address from the public key.
+Encode the address and incorporate the error detecting checksum. Note, the
+encoded address has some letters capitalized, while the initial address is all
+lower case. Verify the encoded address and confirm that the address is valid and
+does not have errors. Modify the encoded address in order to introduce errors.
+Verify the encoded address with errors and confirm that the validation returns
+the invalid checksum error
+#+BEGIN_SRC nushell
+$env.PATH = $env.PATH | prepend ("." | path expand)
+let key = wallet key generate | from yaml
+print $key
+# ╭──────┬────────────────────────────────────────────────────────────────────────────────────╮
+# │ prv  │ 840257eb47ab36bbd952b18f856eb399c57534d8eacda2765e89b799f214bde5                   │
+# │ pub  │ 04e9eb5e40adab72f15ffe5b650498bc320252b92284c2522e3a30f5ed0bbe7da993b442e1a48e5840 │
+# │      │ f59d9b72cf6df6b9fa3d2b45099388b503fbcfc2d77019ed                                   │
+# │ pubc │ 03e9eb5e40adab72f15ffe5b650498bc320252b92284c2522e3a30f5ed0bbe7da9                 │
+# ╰──────┴────────────────────────────────────────────────────────────────────────────────────╯
+let addr = $key.pub | wallet key address
+print $addr
+# 883477898a318f37fd7e4f19f9d3e47400f5bd5f
+let encAddr = $addr | wallet address encode
+print $encAddr
+# 883477898A318F37Fd7E4F19f9D3e47400f5BD5F
+let valid = $encAddr | wallet address verify
+print $valid
 # true
-  #+END_SRC
-
-*** Testing =address checksum= and =address verify= function
-
-Test the =address checksum= and the =address verify= functions
-  #+BEGIN_SRC nushell
-./wallet-test.nu
-  #+END_SRC
+let invalid = $encAddr | str replace --regex '[a-f]' "A" | wallet address verify
+print $invalid
+# address verify: invalid checksum
+# false
+#+END_SRC
