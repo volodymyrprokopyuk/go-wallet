@@ -1,6 +1,7 @@
 package key
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/rand"
 	"fmt"
@@ -11,24 +12,27 @@ import (
 )
 
 type PubKey struct {
-  Pub []byte // A uncompressed public key (0x04, x, y) 65 bytes
+  Pub []byte // An uncompressed public key (0x04, x, y) 65 bytes
   Pubc []byte // A compressed public key (0x02 y even | 0x03 y odd, x) 33 bytes
 }
 
 func NewPubKey(pubx, puby *big.Int) *PubKey {
-  pub := append(pubx.Bytes(), puby.Bytes()...)
-  pub = append([]byte{0x04}, pub...)
-  pubc := pubx.Bytes()
+  var pub bytes.Buffer
+  pub.Write([]byte{0x04})
+  pub.Write(pubx.Bytes())
+  pub.Write(puby.Bytes())
+  var pubc bytes.Buffer
   if new(big.Int).Mod(puby, big.NewInt(2)).Cmp(big.NewInt(0)) == 0 {
-    pubc = append([]byte{0x02}, pubc...)
+    pubc.Write([]byte{0x02})
   } else {
-    pubc = append([]byte{0x03}, pubc...)
+    pubc.Write([]byte{0x03})
   }
-  return &PubKey{Pub: pub, Pubc: pubc}
+  pubc.Write(pubx.Bytes())
+  return &PubKey{Pub: pub.Bytes(), Pubc: pubc.Bytes()}
 }
 
 func (k *PubKey) YAMLEncode() string {
-  return fmt.Sprintf("{pub: %0128x, pubc: %065x}", k.Pub, k.Pubc)
+  return fmt.Sprintf("{pub: %0130x, pubc: %066x}", k.Pub, k.Pubc)
 }
 
 type PrvKey struct {
@@ -44,7 +48,7 @@ func NewPrvKey(prvd, pubx, puby *big.Int) *PrvKey {
 
 func (k *PrvKey) YAMLEncode() string {
   return fmt.Sprintf(
-    "{prv: %064x, pub: %0128x, pubc: %065x}", k.Prv, k.Pub, k.Pubc,
+    "{prv: %064x, pub: %0130x, pubc: %066x}", k.Prv, k.Pub, k.Pubc,
   )
 }
 
@@ -76,12 +80,12 @@ func (k *ExtKey) YAMLEncode() string {
   switch {
   case len(k.Prv) == 0: // HD public extended key
     return fmt.Sprintf(
-      "{pub: %0128x, pubc: %065x, code: %064x, depth: %d, index: %d, xpub: %s}",
+      "{pub: %0130x, pubc: %066x, code: %064x, depth: %d, index: %d, xpub: %s}",
       k.Pub, k.Pubc, k.Code, k.Depth, k.Index, k.Xpub,
     )
   default: // HD private extended key
     return fmt.Sprintf(
-      "{prv: %064x, pub: %0128x, pubc: %065x, code: %064x, depth: %d, index: %d, xprv: %s, xpub: %s}",
+      "{prv: %064x, pub: %0130x, pubc: %066x, code: %064x, depth: %d, index: %d, xprv: %s, xpub: %s}",
       k.Prv, k.Pub, k.Pubc, k.Code, k.Depth, k.Index, k.Xprv, k.Xpub,
     )
   }
