@@ -195,7 +195,7 @@ func addressVerifyCmd() *cli.Command {
 func MnemonicCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "mnemonic",
-    Usage: "Generate, derive, and verify a mnemonic",
+    Usage: "Generate, derive, and verify a mnemonic (BIP-39)",
     Commands: []*cli.Command{
       mnemonicGenerateCmd(), mnemonicDeriveCmd(), mnemonicVerifyCmd(),
     },
@@ -206,8 +206,8 @@ func MnemonicCmd() *cli.Command {
 func mnemonicGenerateCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "generate",
-    Usage: `Generate a mnemonic that encodes a randomly generated seed (BIP-39)
-  stdout: a mnemonic string that encodes the randomly generated seed`,
+    Usage: `Generate a mnemonic that encodes a random sequence of bytes (BIP-39)
+  stdout: a mnemonic string that encodes a random sequence of bytes`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
       bits := cmd.Int("bits")
       mnem, err := MnemonicGenerate(int(bits))
@@ -220,7 +220,8 @@ func mnemonicGenerateCmd() *cli.Command {
   }
   cmd.Flags = []cli.Flag{
     &cli.IntFlag{
-      Name: "bits", Usage: "a seed length in bits", Required: true,
+      Name: "bits", Usage: "a length in bits of a random sequence of bytes",
+      Required: true,
     },
   }
   return cmd
@@ -229,16 +230,17 @@ func mnemonicGenerateCmd() *cli.Command {
 func mnemonicDeriveCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "derive",
-    Usage: `Derive a mnemonic that encodes an external seed (BIP-39)
-  stdout: a mnemonic string that encodes the external seed`,
+    Usage: `Derive a mnemonic that encodes an external random sequence of bytes (BIP-39)
+  stdin: a random sequence of bytes in hex
+  stdout: a mnemonic string that encodes the external random sequence of bytes`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
       bits := cmd.Int("bits")
-      var seed []byte
-      _, err := fmt.Scanf("%x", &seed)
+      var rseq []byte
+      _, err := fmt.Scanf("%x", &rseq)
       if err != nil {
         return err
       }
-      mnem, err := MnemonicDerive(int(bits), seed)
+      mnem, err := MnemonicDerive(int(bits), rseq)
       if err != nil {
         return err
       }
@@ -248,7 +250,8 @@ func mnemonicDeriveCmd() *cli.Command {
   }
   cmd.Flags = []cli.Flag{
     &cli.IntFlag{
-      Name: "bits", Usage: "a seed length in bits", Required: true,
+      Name: "bits", Usage: "a length in bits of a random sequence of bytes",
+      Required: true,
     },
   }
   return cmd
@@ -257,7 +260,7 @@ func mnemonicDeriveCmd() *cli.Command {
 func mnemonicVerifyCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "verify",
-    Usage: `Verify a mnemonic string against the embedded checksum
+    Usage: `Verify a mnemonic string against the embedded checksum (BIP-39)
   stdin: a mnemonic string
   stdout: true if the mnemonic is valid, false otherwise`,
     Action: func(ctx context.Context, cmd *cli.Command) error {

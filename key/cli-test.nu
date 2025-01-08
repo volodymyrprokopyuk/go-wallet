@@ -99,9 +99,10 @@ def "test mnemonic derive" [] {
 def "test mnemonic verify" [] {
   let cases = [[mnem, exp];
     [$seeds.0.mnem, true],
-    [($seeds.0.mnem | str replace "true" "van"), false],
+    [($seeds.0.mnem | str replace --regex '\w+ ' ""), false],
+    [($seeds.0.mnem | str replace --regex '\w' "x"), false],
     [$seeds.1.mnem, true],
-    [($seeds.1.mnem | str replace "top" "van"), false]
+    [($seeds.1.mnem | str replace --regex '\w+' "van"), false]
   ]
   $cases | each {|c|
     let valid = $c.mnem | wallet mnemonic verify | into bool

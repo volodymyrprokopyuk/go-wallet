@@ -1,0 +1,295 @@
+* BIP-39 Mnemonic generation
+:PROPERTIES:
+:TOC: :include descendants
+:END:
+
+:CONTENTS:
+- [[#concepts-and-purpose][Concepts and purpose]]
+  - [[#mnemonic][Mnemonic]]
+  - [[#mnemonic-verification][Mnemonic verification]]
+- [[#design-and-implementation][Design and implementation]]
+  - [[#mnemonic-generate][Mnemonic generate]]
+  - [[#mnemonic-derive][Mnemonic derive]]
+  - [[#mnemonic-verify][Mnemonic verify]]
+- [[#testing-and-usage][Testing and usage]]
+  - [[#testing-mnemonic-generate-menmonic-derive-and-mnemonic-verify-cli-commands][Testing mnemonic generate, menmonic derive, and mnemonic verify CLI commands]]
+  - [[#using-mnemonic-generate-menmonic-derive-and-mnemonic-verify-cli-commands][Using mnemonic generate, menmonic derive, and mnemonic verify CLI commands]]
+:END:
+
+** Concepts and purpose
+
+*** Mnemonic
+
+[[https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki][BIP-39 Mnemonic code for generating deterministic keys]]
+
+- Mnemonic :: A mnemonic is a sequence of 12 to 24 well-known words from a
+  pre-defined dictionary of 2048 words, that encodes a random sequence of bytes
+  received from a cryptographically secure pseudo-random number generator
+  CSPRNG. A mnemonic encodes 128, 160, 192, 224, 256 bits of entropy in a form
+  that is easily managed by humans e.g. write a mnemonic on a piece of paper,
+  copy a mnemonic from a visual source, communicate a mnemonic with voice. It is
+  easy to mistype a random sequence of bytes, while it is much harder to mistype
+  a sequence of 12 to 24 well-known words. A mnemonic has en error detecting
+  checksum that allows to reject a mistype mnemonic. A mnemonic along with an
+  optional passphrase is used to derive a seed for a hierarchical deterministic
+  HD wallet. A HD wallet uses a single seed to deterministically derive an
+  infinite hierarchy of secp256k1 private and public keys. A mnemonic allows to
+  backup, export, or import a HD wallet by only storing a sequence of 12 to 24
+  well-known words
+
+*** Mnemonic verification
+
+- Mnemonic verification :: The mnemonic verification process allows to detect
+  and reject a mistype mnemonic. The mnemonic verification process uses a
+  checksum incorporated into a mnemonic to detect errors in a sequence of 12 to
+  24 words
+
+** Design and implementation
+
+*** Mnemonic generate
+
+- Mnemonic generate :: The =MnemonicGenerate= function takes an entropy length
+  in bits from a pre-defined set of supported lengths, generates a random
+  sequence of bytes of the requested length, and encodes the random sequence of
+  bytes into a mnemonic. The mnemonic generate function
+  - Reject an invalid bit length
+  - Generate a random sequence of bytes of the requested length
+  - Derive a mnemonic from the generated random sequence of bytes
+  #+BEGIN_SRC go
+var rseqLens = []int{128, 160, 192, 224, 256} // In bits
+
+func MnemonicGenerate(bits int) (string, error) {
+  errh := "mnemonic generate"
+  if !slices.Contains(rseqLens, bits) {
+    return "", fmt.Errorf("%s: invalid bit length: %d", errh, bits)
+  }
+  rseq := make([]byte, bits / 8)
+  _, err := rand.Read(rseq)
+  if err != nil {
+    return "", err
+  }
+  return MnemonicDerive(bits, rseq)
+}
+  #+END_SRC
+
+*** Mnemonic derive
+
+- Mnemonic derive :: The =MnemonicDerive= function takes an entropy length in
+  bits from a pre-defined set of supported lengths and a random sequence of
+  bytes, and encodes the random sequence of bytes into a mnemonic. The mnemonic
+  derive function
+  - Reject an invalid bit length
+  - Reject a too short random sequence of bytes
+  - Append a checksum to the random sequence of bytes. The checksum is the first
+    bits of a SHA256 hash of the random sequence of bytes. The checksum length
+    in bits is ~bits / 32~
+  - Split the random sequence of bytes with the appended bits of the checksum
+    into segments of 11 bits. The mnemonic length in words is
+    ~(bits + (bits / 32)) / 11~
+  - Map each segment of 11 bits to a well-known word from a pre-defined
+    dictionary of 2048 words
+  - Combine the mapped words in the order of bit segments into a mnemonic
+  #+BEGIN_SRC go
+//go:embed mnemonic-dict.txt
+var nmenDict string
+
+var idxWord = func() []string {
+  words := make([]string, 0, 2048)
+  scan := bufio.NewScanner(strings.NewReader(nmenDict))
+  for scan.Scan() {
+    words = append(words, scan.Text())
+  }
+  return words
+}()
+
+func MnemonicDerive(bits int, rseq []byte) (string, error) {
+  errh := "mnemonic derive"
+  if !slices.Contains(rseqLens, bits) {
+    return "", fmt.Errorf("%s: invalid bit length: %d", errh, bits)
+  }
+  rseqLen := bits / 8
+  if len(rseq) < rseqLen {
+    err := fmt.Errorf(
+      "%s: random sequence is too short: requested %d, got %d bits",
+      errh, bits, len(rseq) * 8,
+    )
+    return "", err
+  }
+  rseq = rseq[:rseqLen]
+  hash := crypto.SHA256(rseq)
+  rseq = append(rseq, hash[0]) // At most one byte of a checksum
+  mnemLen := (bits + (bits / 32)) / 11 // In words
+  words := make([]string, mnemLen)
+  for i := range mnemLen {
+    if i > 0 {
+      rseq = crypto.Shl(rseq, 11)
+    }
+    seg := crypto.Shr(rseq[:2], 5)
+    idx := binary.BigEndian.Uint16(seg)
+    words[i] = idxWord[idx]
+  }
+  mnem := strings.Join(words, " ")
+  return mnem, nil
+}
+  #+END_SRC
+
+*** Mnemonic verify
+
+- Mnemonic verify :: The =MnemonicVerify= function takes a mnemonic string and
+  confirms that the mnemonic has valid words in the correct order, or returns a
+  validation error. The mnemonic verify function
+  - Split the mnemonic into words
+  - Reject an invalid mnemonic length
+  - Convert mnemonic words into indices for the pre-defined dictionary
+  - Reject an invalid mnemonic word
+  - Reconstruct the random sequence of bytes with the appended bits of the
+    checksum from the mnemonic words
+  - Separate the random sequence of bytes from the bits of the checksum
+  - Compute the checksum by SHA256 hashing the extracted random sequence of
+    bytes
+  - Mask the extracted checksum and the computed checksum to receive the bits of
+    the checksum
+  - Reject an invalid checksum if the extracted and the computed checksum does
+    not match
+  - Confirm the valid mnemonic
+  #+BEGIN_SRC go
+var mnemLens = func() []int { // In words
+  lens := make([]int, len(rseqLens))
+  for i, bits := range rseqLens {
+    lens[i] = (bits + (bits / 32)) / 11
+  }
+  return lens
+}()
+
+var wordIdx = func() map[string]uint16 {
+  indices := make(map[string]uint16, len(idxWord))
+  for i, word := range idxWord {
+    indices[word] = uint16(i)
+  }
+  return indices
+}()
+
+func setLeadBits(bits int) byte {
+  mask, m := byte(0x0), byte(0x80)
+  for range bits {
+    mask |= m
+    m >>= 1
+  }
+  return mask
+}
+
+func MnemonicVerify(mnem string) error {
+  errh := "mnemonic verify"
+  words := strings.Split(mnem, " ")
+  wordLen := len(words)
+  if !slices.Contains(mnemLens, wordLen) {
+    return fmt.Errorf("%s: invalid mnemonic length: %d", errh, wordLen)
+  }
+  indices := make([]uint16, wordLen)
+  for i, word := range words {
+    idx, exist := wordIdx[word]
+    if !exist {
+      return fmt.Errorf("%s: invalid mnemonic word: %s", errh, word)
+    }
+    indices[i] = idx
+  }
+  rseq := make([]byte, 0)
+  for i := wordLen - 1; i >= 0; i-- {
+    seg := make([]byte, 2)
+    binary.BigEndian.PutUint16(seg, indices[i])
+    rseq = append(seg, rseq...)
+    rseq = crypto.Shl(rseq, 5)
+  }
+  rseqLen := 4 * wordLen / 3 // In bytes
+  chkLen := wordLen / 3 // In bits
+  rseq, checksum := rseq[:rseqLen], rseq[rseqLen]
+  hash := crypto.SHA256(rseq)[0]
+  mask := setLeadBits(chkLen)
+  checksum &= mask
+  hash &= mask
+  valid := checksum == hash
+  if !valid {
+    return fmt.Errorf("%s: invalid checksum", errh)
+  }
+  return nil
+}
+  #+END_SRC
+
+** Testing and usage
+
+*** Testing =mnemonic generate=, =menmonic derive=, and =mnemonic verify= CLI commands
+
+#+BEGIN_SRC nushell
+go build -o wallet; ./key/cli-test.nu
+#+END_SRC
+
+*** Using =mnemonic generate=, =menmonic derive=, and =mnemonic verify= CLI commands
+
+Show the help and usage instructions of the =wallet mnemonic= command
+#+BEGIN_SRC nushell
+./wallet mnemonic
+# NAME:
+#    wallet mnemonic - Generate, derive, and verify a mnemonic (BIP-39)
+
+# USAGE:
+#    wallet mnemonic [command [command options]]
+
+# COMMANDS:
+#    generate  Generate a mnemonic that encodes a random sequence of bytes (BIP-39)
+#                stdout: a mnemonic string that encodes a random sequence of bytes
+#    derive    Derive a mnemonic that encodes an external random sequence of bytes (BIP-39)
+#                stdin: a random sequence of bytes in hex
+#                stdout: a mnemonic string that encodes the external random sequence of bytes
+#    verify    Verify a mnemonic string against the embedded checksum (BIP-39)
+#                stdin: a mnemonic string
+#                stdout: true if the mnemonic is valid, false otherwise
+
+# OPTIONS:
+#    --help, -h  show help
+#+END_SRC
+
+Generate a mnemonic of 128 bits of entropy. Verify the mnemonic and confirm that
+the mnemonic is valid. Remove a word from the mnemonic, or change a letter in a
+word, or change a word in the mnemonic, then verify the mnemonic and confirm
+that the mnemonic has an invalid length, or an invalid word, or the mnemonic
+checksum is invalid
+#+BEGIN_SRC nushell
+$env.PATH = $env.PATH | prepend ("." | path expand)
+let mnem = wallet mnemonic generate --bits 128
+print $mnem
+# liar bean draw shield noise mean black auction forest fashion best mad
+$mnem | wallet mnemonic verify
+# true
+$mnem | str replace --regex '\w+ ' "" | wallet mnemonic verify
+# mnemonic verify: invalid mnemonic length: 11
+# false
+$mnem | str replace --regex '\w' "x" | wallet mnemonic verify
+# mnemonic verify: invalid mnemonic word: xiar
+# false
+$mnem | str replace --regex '\w+' "cereal" | wallet mnemonic verify
+# mnemonic verify: invalid checksum
+# false
+#+END_SRC
+
+Generate a random sequence of bytes with 256 bits of entropy. Derive a mnemonic
+of 256 bits of entropy from the generated random sequence of bytes. Verify the
+derived mnemonic. Derive a mnemonic of 128 bits of entropy from the initially
+generated random sequence of bytes. Note, that the 128 bits mnemonic start with
+the same sequence of words except the last word because of the checksum. Try to
+generate a 256 bits mnemonic from a 128 bits random sequence. Confirm that the
+random sequence does not have enough entropy to generate the mnemonic
+#+BEGIN_SRC nushell
+$env.PATH = $env.PATH | prepend ("." | path expand)
+let rseq = open /dev/urandom | first 32 | wallet keccak256
+print $rseq
+# 0b33a459ddf8ab0600f1e83746785d65e50936d326af3beb6d561f8ee76f877d
+let mnem = $rseq | wallet mnemonic derive --bits 256
+print $mnem
+# arctic outdoor biology room melt loan adult dial dance critic blanket slim explain opinion erode sting desk fork few disease unveil result bulb popular
+$mnem | wallet mnemonic verify
+# true
+$rseq | str substring 0..31 | wallet mnemonic derive --bits 128
+# arctic outdoor biology room melt loan adult dial dance critic blanket slide
+$rseq | str substring 0..31 | wallet mnemonic derive --bits 256
+# mnemonic derive: random sequence is too short: requested 256, got 128 bits
+#+END_SRC

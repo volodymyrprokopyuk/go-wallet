@@ -13,77 +13,74 @@ import (
 	_ "embed"
 )
 
-var seedLens = []int{128, 160, 192, 224, 256} // in bits
+var rseqLens = []int{128, 160, 192, 224, 256} // In bits
 
-var mnemLens = func() []int { // in bytes
-  lens := make([]int, len(seedLens))
-  for i, bits := range seedLens {
+var mnemLens = func() []int { // In words
+  lens := make([]int, len(rseqLens))
+  for i, bits := range rseqLens {
     lens[i] = (bits + (bits / 32)) / 11
   }
   return lens
 }()
 
 //go:embed mnemonic-dict.txt
-var strDict string
+var nmenDict string
 
-var slcDict = func() []string {
-  dict := make([]string, 0, 2048)
-  scan := bufio.NewScanner(strings.NewReader(strDict))
+var idxWord = func() []string {
+  words := make([]string, 0, 2048)
+  scan := bufio.NewScanner(strings.NewReader(nmenDict))
   for scan.Scan() {
-    dict = append(dict, scan.Text())
+    words = append(words, scan.Text())
   }
-  return dict
+  return words
 }()
 
-var mapDict = func() map[string]uint16 {
-  dict := make(map[string]uint16, len(slcDict))
-  for i, word := range slcDict {
-    dict[word] = uint16(i)
+var wordIdx = func() map[string]uint16 {
+  indices := make(map[string]uint16, len(idxWord))
+  for i, word := range idxWord {
+    indices[word] = uint16(i)
   }
-  return dict
+  return indices
 }()
 
 func MnemonicGenerate(bits int) (string, error) {
   errh := "mnemonic generate"
-  if !slices.Contains(seedLens, bits) {
+  if !slices.Contains(rseqLens, bits) {
     return "", fmt.Errorf("%s: invalid bit length: %d", errh, bits)
   }
-  seed := make([]byte, bits / 8)
-  _, err := rand.Read(seed)
+  rseq := make([]byte, bits / 8)
+  _, err := rand.Read(rseq)
   if err != nil {
     return "", err
   }
-  return MnemonicDerive(bits, seed)
+  return MnemonicDerive(bits, rseq)
 }
 
-func MnemonicDerive(bits int, seed []byte) (string, error) {
+func MnemonicDerive(bits int, rseq []byte) (string, error) {
   errh := "mnemonic derive"
-  if !slices.Contains(seedLens, bits) {
+  if !slices.Contains(rseqLens, bits) {
     return "", fmt.Errorf("%s: invalid bit length: %d", errh, bits)
   }
-  seedLen := bits / 8
-  if len(seed) < seedLen {
+  rseqLen := bits / 8
+  if len(rseq) < rseqLen {
     err := fmt.Errorf(
-      "%s: seed too short: requested %d, got %d bits",
-      errh, bits, len(seed) * 8,
+      "%s: random sequence is too short: requested %d, got %d bits",
+      errh, bits, len(rseq) * 8,
     )
     return "", err
   }
-  seed = seed[:seedLen]
-  hash := crypto.SHA256(seed)
-  seed = append(seed, hash[0])
-  widx := make([]uint16, (bits + (bits / 32)) / 11)
-  for i := range len(widx) {
+  rseq = rseq[:rseqLen]
+  hash := crypto.SHA256(rseq)
+  rseq = append(rseq, hash[0]) // At most one byte of a checksum
+  mnemLen := (bits + (bits / 32)) / 11 // In words
+  words := make([]string, mnemLen)
+  for i := range mnemLen {
     if i > 0 {
-      seed = crypto.Shl(seed, 11)
+      rseq = crypto.Shl(rseq, 11)
     }
-    seg := crypto.Shr(seed[:2], 5)
+    seg := crypto.Shr(rseq[:2], 5)
     idx := binary.BigEndian.Uint16(seg)
-    widx[i] = idx
-  }
-  words := make([]string, len(widx))
-  for i, idx := range widx {
-    words[i] = slcDict[idx]
+    words[i] = idxWord[idx]
   }
   mnem := strings.Join(words, " ")
   return mnem, nil
@@ -105,26 +102,26 @@ func MnemonicVerify(mnem string) error {
   if !slices.Contains(mnemLens, wordLen) {
     return fmt.Errorf("%s: invalid mnemonic length: %d", errh, wordLen)
   }
-  widx := make([]uint16, wordLen)
+  indices := make([]uint16, wordLen)
   for i, word := range words {
-    idx, exist := mapDict[word]
+    idx, exist := wordIdx[word]
     if !exist {
       return fmt.Errorf("%s: invalid mnemonic word: %s", errh, word)
     }
-    widx[i] = idx
+    indices[i] = idx
   }
-  seed := make([]byte, 0)
+  rseq := make([]byte, 0)
   for i := wordLen - 1; i >= 0; i-- {
     seg := make([]byte, 2)
-    binary.BigEndian.PutUint16(seg, widx[i])
-    seed = append(seg, seed...)
-    seed = crypto.Shl(seed, 5)
+    binary.BigEndian.PutUint16(seg, indices[i])
+    rseq = append(seg, rseq...)
+    rseq = crypto.Shl(rseq, 5)
   }
-  seedLen := 4 * wordLen / 3 // in bytes
-  checkLen := wordLen / 3 // in bits
-  seed, checksum := seed[:seedLen], seed[seedLen]
-  hash := crypto.SHA256(seed)[0]
-  mask := setLeadBits(checkLen)
+  rseqLen := 4 * wordLen / 3 // In bytes
+  chkLen := wordLen / 3 // In bits
+  rseq, checksum := rseq[:rseqLen], rseq[rseqLen]
+  hash := crypto.SHA256(rseq)[0]
+  mask := setLeadBits(chkLen)
   checksum &= mask
   hash &= mask
   valid := checksum == hash

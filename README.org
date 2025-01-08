@@ -3,3 +3,4 @@
 - [[/crypto/base58-encoding.org][Base58 and base58check encoding]]
 - [[/key/secp256k1key-generation.org][Secp256k1 key generation]]
 - [[/key/address-encoding.org][ERC-55 Ethereum address encoding]]
+- [[/key/mnemonic-generation.org][BIP-39 Memonic generation]]

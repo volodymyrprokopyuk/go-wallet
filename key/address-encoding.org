@@ -30,10 +30,10 @@
 
 ** Design and implementation
 
-*** Address checksum
+*** Address encode
 
-- Address checksum :: The =AddressEncode= function encodes an Ethereum address
-  and incorporates an error detecting checksum. The address encode function
+- Address encode :: The =AddressEncode= function encodes an Ethereum address and
+  incorporates an error detecting checksum. The address encode function
   - Convert the address into a lower case hex string
   - Compute the keccak256 hash of the address hex string
   - Convert the keccak256 hash into a lower case hex string
@@ -62,11 +62,10 @@ func AddressEncode(addr []byte) string {
 }
   #+END_SRC
 
-*** Address checksum verification
+*** Address verify
 
-- Address checksum verification :: The =AddressVerify= function verifies that
-  the encoded mixed-case Ethereum address does not have errors. The address
-  verify function
+- Address verify :: The =AddressVerify= function verifies that the encoded
+  mixed-case Ethereum address does not have errors. The address verify function
   - Convert the address into a lower case hex string
   - Compute the keccak256 hash of the address hex string
   - Convert the keccak256 hash into a lower case hex string
@@ -106,6 +105,27 @@ go build -o wallet; ./key/cli-test.nu
 
 *** Using =address encode= and =address verify= CLI commands
 
+Show the help and usage instructions of the =wallet address= command
+#+BEGIN_SRC nushell
+./wallet address
+# NAME:
+#    wallet address - Encode and verify an Ethereum address (ERC-55)
+
+# USAGE:
+#    wallet address [command [command options]]
+
+# COMMANDS:
+#    encode  Encode an Ethereum address (ERC-55)
+#              stdin: an Ethereum address in hex
+#              stdout: an encoded case-sensitive Ethereum address string
+#    verify  Verify an encoded case-sensitive Ethereum address (ERC-55)
+#              stdin: an encoded case-sensitive Ethereum address string
+#              stdout: true if the address is valid, false otherwise
+
+# OPTIONS:
+#    --help, -h  show help
+#+END_SRC
+
 Generate a secp256k1 key pair. Compute the Ethereum address from the public key.
 Encode the address and incorporate the error detecting checksum. Note, the
 encoded address has some letters capitalized, while the initial address is all
@@ -129,11 +149,9 @@ print $addr
 let encAddr = $addr | wallet address encode
 print $encAddr
 # 883477898A318F37Fd7E4F19f9D3e47400f5BD5F
-let valid = $encAddr | wallet address verify
-print $valid
+$encAddr | wallet address verify
 # true
-let invalid = $encAddr | str replace --regex '[a-f]' "A" | wallet address verify
-print $invalid
+$encAddr | str replace --regex '[a-f]' "A" | wallet address verify
 # address verify: invalid checksum
 # false
 #+END_SRC
