@@ -194,13 +194,181 @@
 
 *** =ExtKey= type
 
+- =ExtKey= type :: The =ExtKey= type represents either an extended private key
+  or an extended public key. The extended key type embeds the =PrvKey= type,
+  which, in turn, embeds the =PubKey= type. The extended key type is a super set
+  of the private key and the public key types. Along with the private key and
+  the public key types, the extended key type contains a 32 bytes HD chain code,
+  a depth of an extended key from the master key, an index of an extended key
+  from the parent key, a base58 encoded extended private key =xprv=, a base58
+  encoded extended public key =xpub=
+  #+BEGIN_SRC go
+type ExtKey struct {
+  PrvKey
+  Code []byte // A chain code 32 bytes
+  Depth uint8 // A depth of an extended key from the master key
+  Index uint32 // An index of an extended key from the parent key
+  Xprv string // An encoded HD extended private key
+  Xpub string // An encoded HD extended public key
+}
+
+func NewExtPrvKey(
+  prvd, pubx, puby *big.Int, code []byte, depth uint8, index uint32,
+) *ExtKey {
+  prv := NewPrvKey(prvd, pubx, puby)
+  return &ExtKey{PrvKey: *prv, Code: code, Depth: depth, Index: index}
+}
+
+func NewExtPubKey(
+  pubx, puby *big.Int, code []byte, depth uint8, index uint32,
+) *ExtKey {
+  pub := NewPubKey(pubx, puby)
+  prv := PrvKey{PubKey: *pub}
+  return &ExtKey{PrvKey: prv, Code: code, Depth: depth, Index: index}
+}
+  #+END_SRC
+
 *** Seed derive
+
+- Seed derive :: The =SeedDerive= function takes a mnemonic as data and a
+  passphrase as a salt and produces a 512 bits seed by applying the
+  PBKDF2-SHA512 key derivation function to the data and the salt with 2048
+  iterations of the HMAC-SHA512 message authentication code function. The seed
+  derive function
+  - Create a salt by prepending a fixed "mnemonic" string to the passphrase
+  - Produce a 512 bits seed by applying the PBKDF2-SHA512 key derivation
+    function using the mnemonic as data, the salt, and 2048 iterations of the
+    HMAC-SHA512 message authentication code function
+  #+BEGIN_SRC go
+func SeedDerive(mnemonic, passphrase string) []byte {
+  salt := []byte("mnemonic" + passphrase)
+  seed := crypto.PBKDF2SHA512([]byte(mnemonic), salt, 2048, 64)
+  return seed
+}
+  #+END_SRC
 
 *** Master derive
 
+- Master derive :: The =MasterDerive= function takes a 512 bits seed derived
+  from a 128 to 256 bits of entropy and an optional passphrase and derives
+  extended master private and public keys. The master derive function
+  - Produces a 512 bits authenticated hash using the seed as data and a fixed
+    "Bitcoin seed" string as a key
+  - The first 32 bytes of the authenticated hash is the master private key
+  - The master public key is derived from the master private key by using the
+    secp256k1 multiplication
+  - The last (next) 32 bytes of the authenticated hash is the master chain code
+  - A concatenation of the master private key prefixed with the =0x00= prefix
+    with the master chain code is the extended master private key =xprv=
+  - A concatenation of the compressed master public key with the master chain
+    code is the extended master public key =xpub=
+  #+BEGIN_SRC go
+func MasterDerive(seed []byte) *ExtKey {
+  depth, index := uint8(0), uint32(0)
+  hmac := crypto.HMACSHA512(seed, []byte("Bitcoin seed"))
+  prv, code := hmac[:32], hmac[32:]
+  key := KeyDerive(prv)
+  ekey := &ExtKey{PrvKey: *key, Code: code, Depth: depth, Index: index}
+  ekey.Xprv = EkeyEncode(xprvVer, depth, nil, index, code, prv)
+  ekey.Xpub = EkeyEncode(xpubVer, depth, nil, index, code, ekey.Pubc)
+  return ekey
+}
+  #+END_SRC
+
 *** Private derive
 
+- Private derive :: The =PrivateDerive= function takes an extended private key,
+  a depth of a child key from the master key, an index of a child key from the
+  parent key, and produces child extended private and public keys. The private
+  derive function
+  - Split the parent extended private key into a 32 bytes parent private key and
+    a 32 bytes parent chain code
+  - Derive a parent public key from the parent private key by using the
+    secp256k1 multiplication
+  - Produce a authenticated hash by using the HMAC-SHA512 message authenticated
+    code function with a concatenation of the compressed parent public key and
+    the index of the child key as data, and the parent chain code as a key
+  - Split the authenticated hash into a 32 bytes child private key base and a 32
+    bytes child chain code
+  - Add the parent private key to the child private key base to derive the child
+    private key
+  - Derive a child public key from the child private key by using the secp256k1
+    multiplication
+  - A concatenation of the child private key prefixed with the =0x00= prefix
+    with the child chain code is the extended child private key =xprv=
+  - A concatenation of the compressed child public key with the child chain
+    code is the extended child public key =xpub=
+  #+BEGIN_SRC go
+func PrivateDerive(prve []byte, depth uint8, index uint32) *ExtKey {
+  parPrv, parCode := prve[:32], prve[32:]
+  parKey := KeyDerive(parPrv)
+  idx := make([]byte, 4)
+  binary.BigEndian.PutUint32(idx, index)
+  var data bytes.Buffer
+  data.Write(parKey.Pubc) // Parent public compressed
+  data.Write(idx)
+  hmac := crypto.HMACSHA512(data.Bytes(), parCode)
+  prv, code := hmac[:32], hmac[32:]
+  prvi := new(big.Int).SetBytes(prv)
+  prvi.Add(prvi, new(big.Int).SetBytes(parPrv))
+  prvi.Mod(prvi, ecc.P256k1().Params().N)
+  key := KeyDerive(prvi.Bytes())
+  ekey := &ExtKey{PrvKey: *key, Code: code, Depth: depth, Index: index}
+  ekey.Xprv = EkeyEncode(xprvVer, depth, parKey.Pubc, index, code, ekey.Prv)
+  ekey.Xpub = EkeyEncode(xpubVer, depth, parKey.Pubc, index, code, ekey.Pubc)
+  return ekey
+}
+  #+END_SRC
+
 *** Hardened derive
+
+- Hardened derive :: The =HardenedDerive= function takes an extended private
+  key, a depth of a child key from the master key, an index of a child key from
+  the parent key, and produces child hardened extended private and public keys.
+  The hardened derive function
+  - Split the parent extended private key into a 32 bytes parent private key and
+    a 32 bytes parent chain code
+  - Derive a parent public key from the parent private key by using the
+    secp256k1 multiplication
+  - Create a hardened index by adding 2^{31} to the index
+  - Produce a authenticated hash by using the HMAC-SHA512 message authenticated
+    code function with a concatenation of the parent private key prefixed with
+    the =0x00= prefix and the hardened index of the child key as data, and the
+    parent chain code as a key
+  - Split the authenticated hash into a 32 bytes hardened child private key base
+    and a 32 bytes child chain code
+  - Add the parent private key to the hardened child private key base to derive
+    the hardened child private key
+  - Derive a hardened child public key from the hardened child private key by
+    using the secp256k1 multiplication
+  - A concatenation of the hardened child private key prefixed with the =0x00=
+    prefix with the child chain code is the hardened extended child private key
+    =xprv=
+  - A concatenation of the hardened compressed child public key with the child
+    chain code is the hardened extended child public key =xpub=
+  #+BEGIN_SRC go
+func HardenedDerive(prve []byte, depth uint8, index uint32) *ExtKey {
+  parPrv, parCode := prve[:32], prve[32:]
+  parKey := KeyDerive(parPrv) // Only for xprv and xpub
+  index += uint32(1 << 31) // Hardened key index
+  idx := make([]byte, 4)
+  binary.BigEndian.PutUint32(idx, index)
+  var data bytes.Buffer
+  data.WriteByte(0x00)
+  data.Write(parPrv) // Parent private prefixed
+  data.Write(idx)
+  hmac := crypto.HMACSHA512(data.Bytes(), parCode)
+  prv, code := hmac[:32], hmac[32:]
+  prvi := new(big.Int).SetBytes(prv)
+  prvi.Add(prvi, new(big.Int).SetBytes(parPrv))
+  prvi.Mod(prvi, ecc.P256k1().Params().N)
+  key := KeyDerive(prvi.Bytes())
+  ekey := &ExtKey{PrvKey: *key, Code: code, Depth: depth, Index: index}
+  ekey.Xprv = EkeyEncode(xprvVer, depth, parKey.Pubc, index, code, ekey.Prv)
+  ekey.Xpub = EkeyEncode(xpubVer, depth, parKey.Pubc, index, code, ekey.Pubc)
+  return ekey
+}
+  #+END_SRC
 
 *** Public derive
 

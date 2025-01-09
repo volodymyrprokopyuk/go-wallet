@@ -54,11 +54,11 @@ func (k *PrvKey) YAMLEncode() string {
 
 type ExtKey struct {
   PrvKey
-  Code []byte // A HD chain code 32 bytes
-  Depth uint8 // A depth of the HD key from the master
-  Index uint32 // A index of the HD key from the parent
-  Xprv string // A encoded HD extended private key
-  Xpub string // A encoded HD extended public key
+  Code []byte // A chain code 32 bytes
+  Depth uint8 // A depth of an extended key from the master key
+  Index uint32 // An index of an extended key from the parent key
+  Xprv string // An encoded HD extended private key
+  Xpub string // An encoded HD extended public key
 }
 
 func NewExtPrvKey(
