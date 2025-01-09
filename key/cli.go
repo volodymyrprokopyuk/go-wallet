@@ -288,7 +288,7 @@ func HDCmd() *cli.Command {
     Usage: "Derive master and children extended public and private keys",
     Commands: []*cli.Command{
       seedDeriveCmd(), masterDeriveCmd(), privateDeriveCmd(),
-      hardenedDeriveCmd(), publicDeriveCmd(), ekeyDecodeCmd(),
+      hardenedDeriveCmd(), publicDeriveCmd(), pathDeriveCmd(), ekeyDecodeCmd(),
     },
   }
   return cmd
@@ -426,6 +426,39 @@ extended public key and a key index
     },
     &cli.IntFlag{
       Name: "index", Usage: "a key index from the parent", Required: true,
+    },
+  }
+  return cmd
+}
+
+func pathDeriveCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "path",
+    Usage: `Derive an extended private or public key defined by a HD path
+  stdin: a mnemonic string
+  stdout: an extended private or public key in hex in YAML`,
+    Action: func(ctx context.Context, cmd *cli.Command) error {
+      pass := cmd.String("passphrase")
+      path := cmd.String("path")
+      var mnem []byte
+      mnem, err := io.ReadAll(os.Stdin)
+      if err != nil {
+        return err
+      }
+      ekey, err := PathDerive(string(mnem), pass, path)
+      if err != nil {
+        return err
+      }
+      fmt.Printf("%s\n", ekey.YAMLEncode())
+      return nil
+    },
+  }
+  cmd.Flags = []cli.Flag{
+    &cli.StringFlag{
+      Name: "passphrase", Usage: "a passphrase string",
+    },
+    &cli.StringFlag{
+      Name: "path", Usage: "a HD path e.g. m/0'/1", Required: true,
     },
   }
   return cmd

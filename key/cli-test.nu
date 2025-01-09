@@ -266,3 +266,9 @@ print success
 # $prve | wallet hd hardened --depth 0 --index 1 | from yaml | print
 # let pube = $mst.pubc ++ $mst.code
 # $pube | wallet hd public --depth 0 --index 1 | from yaml | print
+
+  # | wallet hd path --passphrase "passphrase" --path "m/0'/1" | from yaml
+
+# let key = $seeds.0.mnem
+#   | wallet hd path --passphrase "passphrase" --path "m" | from yaml
+# print $key

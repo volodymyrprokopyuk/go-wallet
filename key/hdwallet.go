@@ -6,7 +6,10 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
+	"regexp"
 	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/dustinxie/ecc"
 	"github.com/volodymyrprokopyuk/go-wallet/crypto"
@@ -153,4 +156,31 @@ func PublicDerive(pube []byte, depth uint8, index uint32) *ExtKey {
   ekey := NewExtPubKey(pubx, puby, code, depth, index)
   ekey.Xpub = EkeyEncode(xpubVer, depth, parPubc, index, code, ekey.Pubc)
   return ekey
+}
+
+var rePath = regexp.MustCompile(`^[mM](/\d+'?)*$`)
+var rePathSeg = regexp.MustCompile(`/(\d+)('?)`)
+
+func PathDerive(mnemonic, passphrase, path string) (*ExtKey, error) {
+  if !rePath.MatchString(path) {
+    return nil, fmt.Errorf("path derive: invalid path: %s", path)
+  }
+  seed := SeedDerive(mnemonic, passphrase)
+  ekey := MasterDerive(seed)
+  depth := uint8(0)
+  for _, seg := range rePathSeg.FindAllStringSubmatch(path, -1) {
+    index, _ := strconv.ParseInt(seg[1], 10, 32)
+    hard := len(seg[2]) != 0
+    depth++
+    prve := append(ekey.Prv, ekey.Code...)
+    if hard {
+      ekey = HardenedDerive(prve, depth, uint32(index))
+    } else {
+      ekey = PrivateDerive(prve, depth, uint32(index))
+    }
+  }
+  if strings.HasPrefix(path, "M") {
+    ekey.Prv, ekey.Xprv = nil, ""
+  }
+  return ekey, nil
 }
