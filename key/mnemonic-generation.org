@@ -202,12 +202,12 @@ func MnemonicVerify(mnem string) error {
   }
   rseqLen := 4 * wordLen / 3 // In bytes
   chkLen := wordLen / 3 // In bits
-  rseq, checksum := rseq[:rseqLen], rseq[rseqLen]
+  rseq, csum := rseq[:rseqLen], rseq[rseqLen]
   hash := crypto.SHA256(rseq)[0]
   mask := setLeadBits(chkLen)
-  checksum &= mask
+  csum &= mask
   hash &= mask
-  valid := checksum == hash
+  valid := csum == hash
   if !valid {
     return fmt.Errorf("%s: invalid checksum", errh)
   }

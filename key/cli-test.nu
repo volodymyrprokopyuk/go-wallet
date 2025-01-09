@@ -179,6 +179,7 @@ def "test hd private decode" [] {
     let pubExp = [pubc, code, xpub]
     let pub = $key.xpub | wallet hd decode | from yaml | select ...$pubExp
     assert equal $pub ($c | select ...$pubExp)
+    assert error { $key.xprv + "x" | wallet hd decode }
   }
 }
 

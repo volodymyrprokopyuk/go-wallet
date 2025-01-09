@@ -43,7 +43,6 @@
 
 *** Seed derivation
 
-
 - Seed derivation :: A 512 bits (64 bytes) seed used to derive master extended
   private and public keys of a HD wallet is derived from a 128 to 256 bits
   entropy mnemonic and an optional passphrase. The seed derivation process uses
@@ -57,10 +56,9 @@
   the high number of HMAC-SHA512 iterations makes brute force attacks and
   table-based attacks much more difficult
 
-*** Derivation of master extended keys
+*** Derivation of extended master keys
 
-
-- Derivation of master extended keys :: The master extended private and public
+- Derivation of extended master keys :: The master extended private and public
   keys are used to derive all other keys in a HD wallet. The master extended
   private key is used to derive all private keys (and all public keys if needed)
   in a HD wallet. The master extended public key can be used to derive only all
@@ -70,30 +68,111 @@
   used as a key to the HMAC-SHA512 message authentication code function to
   produce a 512 bits authenticated hash. The first 32 bytes of the authenticated
   hash are used as a master private key. The last (next) 32 bytes of the
-  authenticated hash are used as a chain code needed to derive both private and
-  public keys. A chain code prevents others from deriving child private and
-  public keys if they have access to the corresponding parent private or public
-  key. A master public key is derived (using the normal elliptic curve
-  multiplication) from a master private key by multiplying the master private
-  key by the generator point of the secp256k1 elliptic curve. A 64 bytes
-  concatenation of a master private key with a chain code is called a master
-  extended private key. A 64 bytes concatenation of a master public key with the
-  same chain code is called a master extended public key
+  authenticated hash are used as a master chain code needed to derive both child
+  private and public keys. The master chain code prevents others from deriving
+  child private and public keys if they gained access to the corresponding
+  parent private or public key. A master public key is derived from a master
+  private key using the secp256k1 curve multiplication by multiplying the master
+  private key by the generator point of the secp256k1 elliptic curve. A 64 bytes
+  concatenation of a master private key with a master chain code is called a
+  master extended private key. A 64 bytes concatenation of a master public key
+  with the same master chain code is called a master extended public key
 
-*** Derivation of private extended keys
+*** Derivation of extended private keys
 
-- Derivation of private extended keys :: The extended private keys are
-  identified in the tree hierarchy of a HD wallet by the depth that defines the
-  parent-child positioning of keys and by the index that defines a sibling
+- Derivation of extended private keys :: The extended private keys are
+  identified in the tree hierarchy of a HD wallet by a depth that defines the
+  parent-child positioning of keys, and by an index that defines the sibling
   positioning between derived keys. A child private key is derived from the
-  corresponding parent extended private key, a depth and and index of the child
-  private key
+  corresponding parent extended private key, a depth, and an index of the child
+  private key. The parent extended private key is split into a parent private
+  key and a parent chain code. Then, a parent public key is derived from the
+  parent private key using the secp256k1 multiplication. Next, the HMAC-SHA512
+  authenticated hash is computed using a concatenation of the compressed parent
+  public key and the index of the child private key as data, and the parent
+  chain code as a key. The first 32 bytes of the authenticated hash are used to
+  derive a child private key by adding the parent private key to the first 32
+  bytes of the authenticated hash. The last (next) 32 bytes of the authenticated
+  hash are used as a child chain code. A 64 bytes concatenation of the child
+  private key with the child chain code is the extended private key. A child
+  public key is derived from the child private key using the secp256k1
+  multiplication. A 64 bytes concatenation of the child public key with the
+  child chain code is the extended public key
 
-*** Derivation of hardened extended keys
+*** Derivation of extended hardened keys
 
-*** Derivation of public extended keys
+- Derivation of extended hardened keys :: While the extended parent and public
+  keys are derived using the parent public compressed key, the hardened extended
+  keys are derived using the parent private key prefixed with the =0x00= prefix.
+  While the extended parent and public keys use indices between 0 and 2^{31} -
+  1, the hardened extended keys use indices between 2^{31} and 2^{32} - 1. A
+  hardened child private key is derived from the corresponding parent extended
+  private key, a depth, and an index of the hardened child private key starting
+  from 2^{31}. The parent extended private key is split into a parent private
+  key and a parent chain code. Next, the HMAC-SHA512 authenticated hash is
+  computed using a concatenation of the parent private key prefixed with the
+  =0x00= prefix and the index of the hardened child private key as data, and the
+  parent chain code as a key. The first 32 bytes of the authenticated hash are
+  used to derive a hardened child private key by adding the parent private key
+  to the first 32 bytes of the authenticated hash. The last (next) 32 bytes of
+  the authenticated hash are used as a child chain code. A 64 bytes
+  concatenation of the hardened child private key with the child chain code is
+  the hardened extended private key. A hardened child public key is derived from
+  the hardened child private key using the secp256k1 multiplication. A 64 bytes
+  concatenation of the hardened child public key with the child chain code is
+  the hardened extended public key
+
+*** Derivation of extended public keys
+
+- Derivation of extended public keys :: A big advantage of the HD wallet key
+  derivation mechanism is that extended public keys needed to receive funds can
+  be derived in a less secure environment e.g. web server without extended
+  private keys needed to spend funds. An child public key is derived from the
+  corresponding parent extended public key, a depth, and an index of the child
+  public key. The parent extended public key is split into a compressed parent
+  public key and a parent chain code. Next, the HMAC-SHA512 authenticated hash
+  is computed using a concatenation of the compressed parent public key and the
+  index of the child public key as data, and the parent chain code as a key. The
+  first 32 bytes of the authenticated hash are used to derive a child public key
+  by adding the parent public key to the first 32 bytes of the authenticated
+  hash multiplied by the secp256k1 generator point. The last (next) 32 bytes of
+  the authenticated hash are used as a child chain code. A 64 bytes
+  concatenation of the child public key with the child chain code is the
+  extended public key
 
 *** Encoding and decoding of extended keys
+
+- Encoding of extended keys :: A 64 bytes concatenation of a 32 bytes private or
+  public key with a 32 bytes chain code is called an extended private or public
+  key respectively and difficult to manage by humans. A 128 bytes hex
+  representation of a 64 bytes extended key is quite large. An encoded extended
+  key includes in order a version byte indicating whether the key is private or
+  public, a depth of the key from the master, a fingerprint of the compressed
+  parent public key, the index of the key from a parent, the chain code, the
+  private key prefixed with the =0x00= prefix, or the compressed public key, and
+  the error detecting checksum. A 82 bytes concatenation of the above fields in
+  order is encoded using the base58 encoding. The base58 encoding of an exteded
+  key is less error prone and represents an extended key in a way that humans
+  can manage more easily. Along with a prefixed private or a compressed public
+  key and the corresponding chain code, an encoded extended key includes the
+  following fields in order
+| Field      | Size     | Description                                                 |
+|------------+----------+-------------------------------------------------------------|
+| Version    | 4 bytes  | Private key: version =0x0488ade4=, encoded prefix =xprv=    |
+|            |          | Public key: version =0x0488b21e=, encoded prefix =xpub=     |
+| Depth      | 1 byte   | Depth of a key from the master                              |
+| Parent     | 4 bytes  | First 4 bytes of the hash of a compressed parent public key |
+| Index      | 4 bytes  | Index of a key from the parent                              |
+| Chain Code | 32 bytes | Chain code                                                  |
+| Key        | 33 bytes | Private key prefixed with the =0x00= prefix                 |
+|            |          | Compressed public key                                       |
+| Checksum   | 4 bytes  | First 4 bytes of the hash of all the above fields           |
+
+- Decoding of extended keys :: The decoding of an encoded extended key converts
+  a base58 encoded extended key to its components: a version, a depth, a hash of
+  the compressed parent public key, an index, a chain code, a private key, or a
+  compressed public key, and an error-detecting checksum. The error detecting
+  checksum prevents mistype extended keys from being used by a wallet
 
 ** Design and implementation
 

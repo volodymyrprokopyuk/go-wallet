@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/binary"
+	"fmt"
 	"math/big"
 	"slices"
 
@@ -23,11 +24,11 @@ func EkeyEncode(
   data.Write(version)
   data.Write([]byte{depth})
   switch {
-  case parent == nil: // master key
+  case parent == nil: // Master key
     data.Write([]byte{0x00, 0x00, 0x00, 0x00})
-  case len(parent) == 4: // parent hash
+  case len(parent) == 4: // Parent hash
     data.Write(parent)
-  default: // parent pubc
+  default: // Parent pubc
     hash := crypto.RIPEMD160(crypto.SHA256(parent))
     data.Write(hash[:4])
   }
@@ -35,7 +36,7 @@ func EkeyEncode(
   binary.BigEndian.PutUint32(idx, index)
   data.Write(idx)
   data.Write(code)
-  if len(key) == 32 { // private key
+  if len(key) == 32 { // Private key
     data.Write([]byte{0x00})
   }
   data.Write(key)
@@ -49,6 +50,11 @@ func EkeyDecode(str string) (*ExtKey, error) {
   data, err := crypto.Base58Dec(str)
   if err != nil {
     return nil, err
+  }
+  csum := data[78:]
+  hash := crypto.SHA256(crypto.SHA256(data[:78]))
+  if !slices.Equal(hash[:4], csum) {
+    return nil, fmt.Errorf("extended key decode: invalid checksum")
   }
   version := data[:4]
   depth := uint8(data[4])
@@ -93,8 +99,10 @@ func PrivateDerive(prve []byte, depth uint8, index uint32) *ExtKey {
   parKey := KeyDerive(parPrv)
   idx := make([]byte, 4)
   binary.BigEndian.PutUint32(idx, index)
-  data := append(parKey.Pubc, idx...) // parent public compressed
-  hmac := crypto.HMACSHA512(data, parCode)
+  var data bytes.Buffer
+  data.Write(parKey.Pubc) // Parent public compressed
+  data.Write(idx)
+  hmac := crypto.HMACSHA512(data.Bytes(), parCode)
   prv, code := hmac[:32], hmac[32:]
   prvi := new(big.Int).SetBytes(prv)
   prvi.Add(prvi, new(big.Int).SetBytes(parPrv))
@@ -108,13 +116,15 @@ func PrivateDerive(prve []byte, depth uint8, index uint32) *ExtKey {
 
 func HardenedDerive(prve []byte, depth uint8, index uint32) *ExtKey {
   parPrv, parCode := prve[:32], prve[32:]
-  parKey := KeyDerive(parPrv) // only for xprv and xpub
-  index += uint32(1 << 31) // hardened key index
+  parKey := KeyDerive(parPrv) // Only for xprv and xpub
+  index += uint32(1 << 31) // Hardened key index
   idx := make([]byte, 4)
   binary.BigEndian.PutUint32(idx, index)
-  data := append([]byte{0x00}, parPrv...) // parent private prefixed
-  data = append(data, idx...)
-  hmac := crypto.HMACSHA512(data, parCode)
+  var data bytes.Buffer
+  data.WriteByte(0x00)
+  data.Write(parPrv) // Parent private prefixed
+  data.Write(idx)
+  hmac := crypto.HMACSHA512(data.Bytes(), parCode)
   prv, code := hmac[:32], hmac[32:]
   prvi := new(big.Int).SetBytes(prv)
   prvi.Add(prvi, new(big.Int).SetBytes(parPrv))
@@ -130,9 +140,10 @@ func PublicDerive(pube []byte, depth uint8, index uint32) *ExtKey {
   parPubc, parCode := pube[:33], pube[33:]
   idx := make([]byte, 4)
   binary.BigEndian.PutUint32(idx, index)
-  data := append([]byte{}, parPubc...) // parent public compressed
-  data = append(data, idx...)
-  hmac := crypto.HMACSHA512(data, parCode)
+  var data bytes.Buffer
+  data.Write(parPubc) // Parent public compressed
+  data.Write(idx)
+  hmac := crypto.HMACSHA512(data.Bytes(), parCode)
   pb, code := hmac[:32], hmac[32:]
   parX, parY := ecc.UnmarshalCompressed(ecc.P256k1(), parPubc)
   pub := new(ecdsa.PublicKey)
