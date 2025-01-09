@@ -237,6 +237,32 @@ def "test hd public" [] {
   }
 }
 
+def "test hd path" [] {
+  let cases = [{
+    mnem: $seeds.0.mnem, pass: "passphrase", path: "m",
+    xprv: "xprv9s21ZrQH143K45wQJqDPi9AxApy1pqB1tjAitd865ZEqy92zeLmWdK127NC99hpA78UKcn2iudbmMAEp7PJEHEsTe6em4RCycAKAkNpM23y",
+    xpub: "xpub661MyMwAqRbcGa1sQrkQ5H7giroWEHtsFx6Kh1XhdtmpqwN9Bt5mB7KVxev8kcWKFksmipo3fkRrtj4JbpUvgaziUWDg7cQe6LXXn85Tnbj"
+  }, {
+    mnem: $seeds.0.mnem, pass: "passphrase", path: "m/44'/0'/0'/0",
+    xprv: "xprvA1HpuUwu9t4naiMidsqP7gE7UYMnTnkRKpuGybPzD45zocyvLRiqjiFDnw2LwsTrHT2FNP4xP4fmds6RT9ryEBG7BP2CsCVvYDEQyWuw8xJ",
+    xpub: "xpub6EHBJzUnzFd5oCSBjuNPUpAr2aCGsFUGh3psmyobmPcygRK4sy36HWZheDEb9fUqcSdr4e12PvfpY9hDteMGZS7euqhVGtdbV9UB1Ss1GTM"
+  }, {
+    mnem: $seeds.1.mnem, pass: "passphrase", path: "m",
+    xprv: "xprv9s21ZrQH143K3Xk9NFmj9whoJ1EpLbLykCsEJAusgY128XGdzBJQdag91Kk9o6j7vSULqi8sonf49XWsvSddAwaZgAEb9JSVLUMYqTGLijk",
+    xpub: "xpub661MyMwAqRbcG1pcUHJjX5eXr35Jk44q7Rnq6ZKVEsY11KbnXicfBNzcraF95K9MVMcNWU2qn6X73eAuPctmLgVWj46rnYdN6ueQHfPBwHH"
+  }, {
+    mnem: $seeds.1.mnem, pass: "passphrase", path: "m/44'/0'/0'/0",
+    xprv: "xprvA2PRtMeiMBJMhjifmsHXMjRPoV5rG7UjfwTjqvDp5qX9truQLJBNEpvuxDLJr5SEdegxauUPy9wA6F1KtckpCmYCoDouQ9ZVgrTuDVyCsAe",
+    xpub: "xpub6FNnHsBcBYrevDo8stpXisN8MWvLfaCb3APLeJdReB48mfEYsqVcndFPoUdYyvEok3XVjMWXda6v8ohtsCj7mXFekGTxRXbXnPb4ZsaaMGg"
+  }]
+  $cases | each {|c|
+    let exp = [xprv, xpub]
+    let key = $c.mnem | wallet hd path --passphrase $c.pass --path $c.path
+      | from yaml | select ...$exp
+    assert equal $key ($c | select ...$exp)
+  }
+}
+
 test key generate
 test key derive
 test key address
@@ -253,6 +279,7 @@ test hd master
 test hd private decode
 test hd hardened
 test hd public
+test hd path
 
 print success
 
@@ -267,8 +294,6 @@ print success
 # let pube = $mst.pubc ++ $mst.code
 # $pube | wallet hd public --depth 0 --index 1 | from yaml | print
 
-  # | wallet hd path --passphrase "passphrase" --path "m/0'/1" | from yaml
-
-# let key = $seeds.0.mnem
+# let key = $seeds.1.mnem
 #   | wallet hd path --passphrase "passphrase" --path "m" | from yaml
 # print $key

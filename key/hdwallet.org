@@ -140,6 +140,22 @@
   concatenation of the child public key with the child chain code is the
   extended public key
 
+*** Derivation of extended keys defined by HD path
+
+- HD path :: A HD path uniquely defines an extended private or public key in the
+  tree hierarchy of a HD wallet. A HD path starts from either a master private
+  key =m= or a master public key =M= and indicates the derivation path by
+  appending path segments in the form =/index= for the normal derivation or in
+  the form =/index'= for hardened derivation. The indices for hardened
+  derivation start from 2^{31}, so this number is automatically added to the
+  index of a hardened key e.g. =/0'= means 1 + 2^{31}. Each segment in a HD path
+  represents the next level in the tree hierarchy and increments the depth by
+  one
+| Path   | Description                                                         |
+|--------+---------------------------------------------------------------------|
+| =m/0=  | The first child private key of the master key (normal derivation)   |
+| =M/1'= | The second child public key of the master key (hardened derivation) |
+
 *** Encoding and decoding of extended keys
 
 - Encoding of extended keys :: A 64 bytes concatenation of a 32 bytes private or
@@ -188,6 +204,8 @@
 
 *** Public derive
 
+*** Path derive
+
 *** Extended key encode
 
 *** Extended key decode
@@ -203,4 +221,5 @@ go build -o wallet; ./key/cli-test.nu
 *** Using =hd seed= and =hd master= CLI commands
 *** Using =hd private= and =hd hardened= CLI commands
 *** Using =hd public= CLI commands
+*** Using =hd path= CLI commands
 *** Using =hd decode= CLI commands

@@ -170,10 +170,10 @@ func PathDerive(mnemonic, passphrase, path string) (*ExtKey, error) {
   depth := uint8(0)
   for _, seg := range rePathSeg.FindAllStringSubmatch(path, -1) {
     index, _ := strconv.ParseInt(seg[1], 10, 32)
-    hard := len(seg[2]) != 0
+    hardened := len(seg[2]) != 0
     depth++
     prve := append(ekey.Prv, ekey.Code...)
-    if hard {
+    if hardened {
       ekey = HardenedDerive(prve, depth, uint32(index))
     } else {
       ekey = PrivateDerive(prve, depth, uint32(index))
