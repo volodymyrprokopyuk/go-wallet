@@ -285,115 +285,23 @@ def "test hd path public" [] {
   }
 }
 
-# test key generate
-# test key derive
-# test key address
+test key generate
+test key derive
+test key address
 
-# test address encode
-# test address verify
+test address encode
+test address verify
 
-# test mnemonic generate
-# test mnemonic derive
-# test mnemonic verify
+test mnemonic generate
+test mnemonic derive
+test mnemonic verify
 
-# test hd seed
-# test hd master
-# test hd private decode
-# test hd hardened
-# test hd public
-# test hd path private
-# test hd path public
+test hd seed
+test hd master
+test hd private decode
+test hd hardened
+test hd public
+test hd path private
+test hd path public
 
-# print success
-
-# let mst = $seeds.0.mnem | wallet hd seed | wallet hd master | from yaml
-# let prve = $mst.prv ++ $mst.code
-# let ekey = $prve | wallet hd private --depth 0 --index 0 | from yaml
-# $ekey | print
-# $ekey.xprv | wallet hd decode | from yaml | print
-# $ekey.xpub | wallet hd decode | from yaml | print
-
-# $prve | wallet hd hardened --depth 0 --index 1 | from yaml | print
-# let pube = $mst.pubc ++ $mst.code
-# $pube | wallet hd public --depth 0 --index 1 | from yaml | print
-
-# let key = $seeds.0.mnem
-#   | wallet hd path --passphrase "passphrase" --path "m/1/2/3" | from yaml
-# print $key
-
-# let key = $seeds.1.mnem
-#   | wallet hd path --passphrase "passphrase" --path "m/11/22/33" | from yaml
-# print $key
-
-$env.PATH = $env.PATH | prepend ("." | path expand)
-let mnem = wallet mnemonic generate --bits 128
-print $mnem
-# inspire fox supply idle museum quarter fade venture hammer setup illegal draft
-let seed = $mnem | wallet hd seed --passphrase "secret"
-print $seed
-# 953de269b05b9a75ee4b0f4e73395f637b42a3a6df5874dc6ff161cc2e064698e03cfca0007705ad3902f66ddb053b03b580fa0cba9d103baa66cd0ea25651c7
-let mst = $seed | wallet hd master | from yaml
-print $mst
-# ╭───────┬───────────────────────────────────────────────────────────────────────────────────╮
-# │ prv   │ 85902f89bf0ab828b418e392eb2adcb3dcdf5d2ff3653b58447b474b17c962fb                  │
-# │ pub   │ 04b9954badc8ad563863e8f69f0340f3a8d4e74eb83f93fd6f99d4aaae058b505791c3a0495717cbb │
-# │       │ d84643e79571941711591ad05523ef802642c43e9ee5f8314                                 │
-# │ pubc  │ 02b9954badc8ad563863e8f69f0340f3a8d4e74eb83f93fd6f99d4aaae058b5057                │
-# │ code  │ e57eb516b3bf29e41be3fa99eb9eaa299d5cc43bae0bac52deeb58e1bc9868ec                  │
-# │ depth │ 0                                                                                 │
-# │ index │ 0                                                                                 │
-# │ xprv  │ xprv9s21ZrQH143K4LswDQrMzrVaj6b5t48daRD3oV2Kk8bUvU1iAFga1gQzAzYA1mHQYyzwMKELusAEv │
-# │       │ mVFq9fRwZx7U7WsF8cexRx5kgj4S3j                                                    │
-# │ xpub  │ xpub661MyMwAqRbcGpxQKSPNMzSKH8RaHWrUwe8ebsRwJU8ToGLrhnzpZUjU2FxqEeWM4DQbXA461gbyi │
-# │       │ w3XVaa4Yixw1kKqC2i4rDQtzeUtc2A                                                    │
-# ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
-
-
-let prve = $mst.prv ++ $mst.code
-let prv = $prve | wallet hd private --depth 1 --index 0 | from yaml
-print $prv
-# ╭───────┬───────────────────────────────────────────────────────────────────────────────────╮
-# │ prv   │ b3d3066c86d78e2abb56906b4218f52faccf40dba298ce4eb8424ba49049549f                  │
-# │ pub   │ 049075cfc92e3960e65d7b562f15484627c11765be4cc970138b1fe7614e78611597a400aff5b8368 │
-# │       │ d897ff7b164639ec4d6c994ce20ec2488ddfb4ac610c52d8c                                 │
-# │ pubc  │ 029075cfc92e3960e65d7b562f15484627c11765be4cc970138b1fe7614e786115                │
-# │ code  │ d619c8594fd251953ecaf5427dcf5e5103f71f7ccd7f95c1efd396d103215220                  │
-# │ depth │ 1                                                                                 │
-# │ index │ 0                                                                                 │
-# │ xprv  │ xprv9vewQDR7GSxHmbd17QusMZyKksczNVxLQCok1DcaLjnUvhS4xwibCKj6jVR2D6PEGUmDrkeGpZdf8 │
-# │       │ wfEc6QcfcfQk1tUaUG4LBivUmttvv9                                                    │
-# │ xpub  │ xpub69eHoix16pWaz5hUDSSsihv4JuTUmxgBmRjLoc2Bu5KToVmDWV2qk83aakBDKfAibMs9Jo1viGnXL │
-# │       │ YvhZam76iKVz1RJc4k2ZPnp19A7qq7                                                    │
-# ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
-
-
-let hrd = $prve | wallet hd hardened --depth 1 --index 0 | from yaml
-print $hrd
-# ╭───────┬───────────────────────────────────────────────────────────────────────────────────╮
-# │ prv   │ cd9d4def320fd514ce41863f2974be5b9e899efa3a2b6ac87b07f56c9ceb3af4                  │
-# │ pub   │ 0415b96c5f8897abffd58da78f2e53b1714f3b6de90c738db6d40c3b165917d799b97d4ccae3bf649 │
-# │       │ 09869e55d7e43bfe886a9f3924a5a140308a3174fa4d0f154                                 │
-# │ pubc  │ 0215b96c5f8897abffd58da78f2e53b1714f3b6de90c738db6d40c3b165917d799                │
-# │ code  │ b509e6dc4aa193c5b6bd1b7d16fc0608d7ce8eab345091906b40a843efec7cc0                  │
-# │ depth │ 1                                                                                 │
-# │ index │ 2147483648                                                                        │
-# │ xprv  │ xprv9vewQDRFc7VFwYpTerFSLbMKxXktsnTsvjGAfmdvjSMd8yiFNCdiNgvZKngY4bQbKG1YEDzoABMSY │
-# │       │ 7BkLQt6tRzCWnDzLrApQTjVXuMXKaV                                                    │
-# │ xpub  │ xpub69eHoix9SV3ZA2tvksnShjJ4WZbPHFBjHxBmUA3YHmtc1n3PujwxvVF3B2KKH3feV4vcZg1HNpTj3 │
-# │       │ FgaMwuUM4srVNneo8D9boJr1VpsUBC                                                    │
-# ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
-
-
-let pube = $mst.pubc ++ $mst.code
-let pub = $pube | wallet hd public --depth 1 --index 0 | from yaml
-print $pub
-# ╭───────┬───────────────────────────────────────────────────────────────────────────────────╮
-# │ pub   │ 049075cfc92e3960e65d7b562f15484627c11765be4cc970138b1fe7614e78611597a400aff5b8368 │
-# │       │ d897ff7b164639ec4d6c994ce20ec2488ddfb4ac610c52d8c                                 │
-# │ pubc  │ 029075cfc92e3960e65d7b562f15484627c11765be4cc970138b1fe7614e786115                │
-# │ code  │ d619c8594fd251953ecaf5427dcf5e5103f71f7ccd7f95c1efd396d103215220                  │
-# │ depth │ 1                                                                                 │
-# │ index │ 0                                                                                 │
-# │ xpub  │ xpub69eHoix16pWaz5hUDSSsihv4JuTUmxgBmRjLoc2Bu5KToVmDWV2qk83aakBDKfAibMs9Jo1viGnXL │
-# │       │ YvhZam76iKVz1RJc4k2ZPnp19A7qq7                                                    │
-# ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
+print success

@@ -4,6 +4,30 @@
 :END:
 
 :CONTENTS:
+- [[#concepts-and-purpose][Concepts and purpose]]
+  - [[#hd-wallet][HD wallet]]
+  - [[#seed-derivation][Seed derivation]]
+  - [[#derivation-of-extended-master-keys][Derivation of extended master keys]]
+  - [[#derivation-of-extended-private-keys][Derivation of extended private keys]]
+  - [[#derivation-of-extended-hardened-keys][Derivation of extended hardened keys]]
+  - [[#derivation-of-extended-public-keys][Derivation of extended public keys]]
+  - [[#derivation-of-extended-keys-defined-by-hd-path][Derivation of extended keys defined by HD path]]
+  - [[#encoding-and-decoding-of-extended-keys][Encoding and decoding of extended keys]]
+- [[#design-and-implementation][Design and implementation]]
+  - [[#extkey-type][ExtKey type]]
+  - [[#seed-derive][Seed derive]]
+  - [[#master-derive][Master derive]]
+  - [[#private-derive][Private derive]]
+  - [[#hardened-derive][Hardened derive]]
+  - [[#public-derive][Public derive]]
+  - [[#path-derive][Path derive]]
+  - [[#extended-key-encode][Extended key encode]]
+  - [[#extended-key-decode][Extended key decode]]
+- [[#testing-and-usage][Testing and usage]]
+  - [[#testing-all-hd-wallet-cli-commands][Testing all HD wallet CLI commands]]
+  - [[#using-hd-seed-and-hd-master-private-hardened-public-cli-commands][Using hd seed and hd master private hardened public CLI commands]]
+  - [[#using-hd-path-cli-commands][Using hd path CLI commands]]
+  - [[#using-hd-decode-cli-commands][Using hd decode CLI commands]]
 :END:
 
 ** Concepts and purpose
@@ -153,8 +177,8 @@
   one
 | Path   | Description                                                         |
 |--------+---------------------------------------------------------------------|
-| =m/0=  | The first child private key of the master key (normal derivation)   |
-| =M/1'= | The second child public key of the master key (hardened derivation) |
+| =m/0'= | The first child private key of the master key (hardened derivation) |
+| =M/1=  | The second child public key of the master key (normal derivation)   |
 
 *** Encoding and decoding of extended keys
 
@@ -737,4 +761,139 @@ print $pub
 #+END_SRC
 
 *** Using =hd path= CLI commands
+
+Derive a mnemonic with 128 bits of entropy. Pass the mnemonic along with an
+optional passphrase and a HD path =m/1/2/3= to derive the extended private and
+public keys using the private derivation
+#+BEGIN_SRC nushell
+$env.PATH = $env.PATH | prepend ("." | path expand)
+let mnem = wallet mnemonic generate --bits 128
+print $mnem
+# solar theory purchase swim memory craft obscure horse crumble casual mixture patch
+let prv = $mnem | wallet hd path --passphrase "secret" --path "m/1/2/3"
+  | from yaml
+print $prv
+# ╭───────┬───────────────────────────────────────────────────────────────────────────────────╮
+# │ prv   │ 69670b963d137dd82513b022016e84398c9fa9df043876f0822c031c1a7eb4ae                  │
+# │ pub   │ 04942054c003684a4327fe57383f8d8036775b779d4fa8f9b9197567a00cb3190e98b0450f9eaef09 │
+# │       │ 3d704eacbf6b072bcc3255d4366193ade20728263705ff873                                 │
+# │ pubc  │ 03942054c003684a4327fe57383f8d8036775b779d4fa8f9b9197567a00cb3190e                │
+# │ code  │ 15ee7cca39efa21ea59466d237b83bde19472aa98105b62eafb7dbd424fdd19b                  │
+# │ depth │ 3                                                                                 │
+# │ index │ 3                                                                                 │
+# │ xprv  │ xprv9ycZe59jJBCFwxrBqNkkndwH8pgnwrqogab13vDqYjifSbH59F2zWbYAkc6odmJNyBXrsptKXGUF8 │
+# │       │ SRdqfFSmQNGtGpVcuQrauqw7Xc2bQc                                                    │
+# │ xpub  │ xpub6Cbv3agd8YkZASvewQHm9mt1grXHMKZf3oWbrJdT75FeKPcDgnMF4PrebuQ8aH61yBm1TPfPrLwXa │
+# │       │ dMQ6PFHg2uwdVhDwTu2eHKvHPTUbrj                                                    │
+# ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
+#+END_SRC
+
+Pass the mnemonic along with an optional passphrase and a HD path =m/1'/2/3= to
+derive the extended private and public keys using the hardened derivation for
+the first derivation segment and using the private derivation for the other
+derivation segments. Note, that even a single hardened derivation derives
+completely different keys
+#+BEGIN_SRC nushell
+let hrd = $mnem | wallet hd path --passphrase "secret" --path "m/1'/2/3"
+  | from yaml
+print $hrd
+# ╭───────┬───────────────────────────────────────────────────────────────────────────────────╮
+# │ prv   │ af2f45c6183270c9bf9d4f8a6b4c9869cad3698aaa089614790b6159735a1565                  │
+# │ pub   │ 043b5b3b087fa7c829e9655a7958c419979c1b9509eee48ee8e8f40d05b22b96b7f3f5367703b3954 │
+# │       │ 2599b14ac6cda26670ada1cc3bca81cb70db1d0dd32fe5378                                 │
+# │ pubc  │ 023b5b3b087fa7c829e9655a7958c419979c1b9509eee48ee8e8f40d05b22b96b7                │
+# │ code  │ 279fcf8e47a09ae23223b12edadcc951913377c928c2fef5dd2006ba12e3187d                  │
+# │ depth │ 3                                                                                 │
+# │ index │ 3                                                                                 │
+# │ xprv  │ xprv9y3CbGsDkQLEH554QxZ9gA3C3bE2whPB8wHeooMpKDL1UD1eZP54FmEFR1z9gKTpQz9Yxcn3w8eWv │
+# │       │ jQCKshCmW4Y8ejRxhopi2Lfq8S2mBw                                                    │
+# │ xpub  │ xpub6C2YznQ7amtXVZ9XWz6A3Hyvbd4XMA72WADFcBmRsYrzM1Lo6vPJoZYjGG8uSd76XoTdZRm5UHWSg │
+# │       │ JdjQYZmDwFPUgzrGHCbwwQ3xz4QPU1                                                    │
+# ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
+#+END_SRC
+
+Pass the mnemonic along with an optional passphrase and a HD path =m/1/2/3= to
+derive the extended public key using the public derivation. Note, that the
+extended public key of the public derivation is equal to the extended public key
+of the private derivation, as the HD path is the same, however derivation
+mechanisms are different
+#+BEGIN_SRC nushell
+let pub = $mnem | wallet hd path --passphrase "secret" --path "M/1/2/3"
+  | from yaml
+print $pub
+# ╭───────┬───────────────────────────────────────────────────────────────────────────────────╮
+# │ pub   │ 04942054c003684a4327fe57383f8d8036775b779d4fa8f9b9197567a00cb3190e98b0450f9eaef09 │
+# │       │ 3d704eacbf6b072bcc3255d4366193ade20728263705ff873                                 │
+# │ pubc  │ 03942054c003684a4327fe57383f8d8036775b779d4fa8f9b9197567a00cb3190e                │
+# │ code  │ 15ee7cca39efa21ea59466d237b83bde19472aa98105b62eafb7dbd424fdd19b                  │
+# │ depth │ 3                                                                                 │
+# │ index │ 3                                                                                 │
+# │ xpub  │ xpub6Cbv3agd8YkZASvewQHm9mt1grXHMKZf3oWbrJdT75FeKPcDgnMF4PrebuQ8aH61yBm1TPfPrLwXa │
+# │       │ dMQ6PFHg2uwdVhDwTu2eHKvHPTUbrj                                                    │
+# ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
+#+END_SRC
+
 *** Using =hd decode= CLI commands
+
+Derive a mnemonic with 128 bits of entropy. Pass the mnemonic along with an
+optional passphrase and a HD path =m/1/2/3= to derive the extended private and
+public keys using the private derivation
+#+BEGIN_SRC nushell
+$env.PATH = $env.PATH | prepend ("." | path expand)
+let mnem = wallet mnemonic generate --bits 128
+print $mnem
+# area boring more trick public exist spray flame junk height denial fade
+let key = $mnem | wallet hd path --passphrase "secret" --path "m/1/2/3"
+  | from yaml
+print $key
+# ╭───────┬───────────────────────────────────────────────────────────────────────────────────╮
+# │ prv   │ 56b69966b1198121cccb9e6cdafeea6e72b98944b3c77dd28cb9a0dfd4e17246                  │
+# │ pub   │ 046174a7849c1386ab1593e427939fb21ad18efe09b667b86250115b586e732b7e5bfab6721291002 │
+# │       │ e3209a68aa659250d5dcfe6c6101f8085dae8f8e8b588b315                                 │
+# │ pubc  │ 036174a7849c1386ab1593e427939fb21ad18efe09b667b86250115b586e732b7e                │
+# │ code  │ 6719d551409c263206ec17bef32babc88dc97e7b0bba5c484cee2c5a7fa722ee                  │
+# │ depth │ 3                                                                                 │
+# │ index │ 3                                                                                 │
+# │ xprv  │ xprv9yzG3jBuhbgwLHF4ybkwjngykRSC7bgW934mQ3FUiho5P4AW6Bcs1oxFnfijomRjPvpRrjNFisUXo │
+# │       │ 4x3aek1pipoE6FjFSkABaUcPeDJkuA                                                    │
+# │ xpub  │ xpub6CycTEioXyFEYmKY5dHx6vdiJTGgX4QMWFzNCRf6H3L4FrVediw7ZcGjdxmyprQoyVdcAn3Dj1wBT │
+# │       │ akA49K368r9xdrceaoWevPgD1ih33Z                                                    │
+# ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
+#+END_SRC
+
+Decode the encoded private key =xprv= of the extended private key. Note, that
+the decode private key is equal to the extended private key
+#+BEGIN_SRC nushell
+let prv = $key.xprv | wallet hd decode | from yaml
+print $prv
+# ╭───────┬───────────────────────────────────────────────────────────────────────────────────╮
+# │ prv   │ 56b69966b1198121cccb9e6cdafeea6e72b98944b3c77dd28cb9a0dfd4e17246                  │
+# │ pub   │ 046174a7849c1386ab1593e427939fb21ad18efe09b667b86250115b586e732b7e5bfab6721291002 │
+# │       │ e3209a68aa659250d5dcfe6c6101f8085dae8f8e8b588b315                                 │
+# │ pubc  │ 036174a7849c1386ab1593e427939fb21ad18efe09b667b86250115b586e732b7e                │
+# │ code  │ 6719d551409c263206ec17bef32babc88dc97e7b0bba5c484cee2c5a7fa722ee                  │
+# │ depth │ 3                                                                                 │
+# │ index │ 3                                                                                 │
+# │ xprv  │ xprv9yzG3jBuhbgwLHF4ybkwjngykRSC7bgW934mQ3FUiho5P4AW6Bcs1oxFnfijomRjPvpRrjNFisUXo │
+# │       │ 4x3aek1pipoE6FjFSkABaUcPeDJkuA                                                    │
+# │ xpub  │ xpub6CycTEioXyFEYmKY5dHx6vdiJTGgX4QMWFzNCRf6H3L4FrVediw7ZcGjdxmyprQoyVdcAn3Dj1wBT │
+# │       │ akA49K368r9xdrceaoWevPgD1ih33Z                                                    │
+# ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
+#+END_SRC
+
+Decode the encoded public key =xpub= of the extended public key. Note, that
+the decode public key is equal to the extended public key
+#+BEGIN_SRC nushell
+let pub = $key.xpub | wallet hd decode | from yaml
+print $pub
+# ╭───────┬───────────────────────────────────────────────────────────────────────────────────╮
+# │ pub   │ 046174a7849c1386ab1593e427939fb21ad18efe09b667b86250115b586e732b7e5bfab6721291002 │
+# │       │ e3209a68aa659250d5dcfe6c6101f8085dae8f8e8b588b315                                 │
+# │ pubc  │ 036174a7849c1386ab1593e427939fb21ad18efe09b667b86250115b586e732b7e                │
+# │ code  │ 6719d551409c263206ec17bef32babc88dc97e7b0bba5c484cee2c5a7fa722ee                  │
+# │ depth │ 3                                                                                 │
+# │ index │ 3                                                                                 │
+# │ xpub  │ xpub6CycTEioXyFEYmKY5dHx6vdiJTGgX4QMWFzNCRf6H3L4FrVediw7ZcGjdxmyprQoyVdcAn3Dj1wBT │
+# │       │ akA49K368r9xdrceaoWevPgD1ih33Z                                                    │
+# ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
+#+END_SRC
