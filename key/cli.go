@@ -285,7 +285,7 @@ func mnemonicVerifyCmd() *cli.Command {
 func HDCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "hd",
-    Usage: "Derive master and children extended public and private keys",
+    Usage: "Derive extended master and child private and public keys",
     Commands: []*cli.Command{
       seedDeriveCmd(), masterDeriveCmd(), privateDeriveCmd(),
       hardenedDeriveCmd(), publicDeriveCmd(), pathDeriveCmd(), ekeyDecodeCmd(),
@@ -323,9 +323,9 @@ func seedDeriveCmd() *cli.Command {
 func masterDeriveCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "master",
-    Usage: `Derive master extended private and public keys from a seed
+    Usage: `Derive extended master private and public keys from a seed
   stdin: a seed in hex
-  stdout: master extended private and public keys in hex in YAML`,
+  stdout: extended master private and public keys in hex in YAML`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
       var seed []byte
       _, err := fmt.Scanf("%x", &seed)
@@ -343,10 +343,9 @@ func masterDeriveCmd() *cli.Command {
 func privateDeriveCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "private",
-    Usage: `Derive child extended private and public keys from a parent
-extended private key and a key index
-  stdin: a parent extended private key in hex
-  stdout: child extended private and public keys in hex in YAML`,
+    Usage: `Derive extended private and public keys from an extended parent private key
+  stdin: an extended parent private key in hex
+  stdout: extended child private and public keys in hex in YAML`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
       depth, index := cmd.Int("depth"), cmd.Int("index")
       var prve []byte
@@ -361,10 +360,12 @@ extended private key and a key index
   }
   cmd.Flags = []cli.Flag{
     &cli.IntFlag{
-      Name: "depth", Usage: "a key depth from the master", Required: true,
+      Name: "depth", Usage: "a depth of the child key from the master key",
+      Required: true,
     },
     &cli.IntFlag{
-      Name: "index", Usage: "a key index from the parent", Required: true,
+      Name: "index", Usage: "an index of the child key from the parent key",
+      Required: true,
     },
   }
   return cmd
@@ -373,10 +374,9 @@ extended private key and a key index
 func hardenedDeriveCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "hardened",
-    Usage: `Derive hardened child extended private and public keys from a parent
-extended private key and a key index
-  stdin: a parent extended private key in hex
-  stdout: child extended private and public keys in hex in YAML`,
+    Usage: `Derive hardened extended private and public keys from an extended parent private key
+  stdin: an extended parent private key in hex
+  stdout: hardened extended child private and public keys in hex in YAML`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
       depth, index := cmd.Int("depth"), cmd.Int("index")
       var prve []byte
@@ -391,10 +391,11 @@ extended private key and a key index
   }
   cmd.Flags = []cli.Flag{
     &cli.IntFlag{
-      Name: "depth", Usage: "a key depth from the master", Required: true,
+      Name: "depth", Usage: "a depth of the child key from the master key",
+      Required: true,
     },
     &cli.IntFlag{
-      Name: "index", Usage: "a key index from the parent, (2 << 31) will be added",
+      Name: "index", Usage: "an index of the child key from the parent key",
       Required: true,
     },
   }
@@ -404,10 +405,9 @@ extended private key and a key index
 func publicDeriveCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "public",
-    Usage: `Derive a child extended public key from a parent
-extended public key and a key index
-  stdin: a parent extended public key in hex
-  stdout: a child extended public key in hex in YAML`,
+    Usage: `Derive an extended public key from an extended parent public key
+  stdin: an extended parent public key in hex
+  stdout: an extended child public key in hex in YAML`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
       depth, index := cmd.Int("depth"), cmd.Int("index")
       var pube []byte
@@ -422,10 +422,12 @@ extended public key and a key index
   }
   cmd.Flags = []cli.Flag{
     &cli.IntFlag{
-      Name: "depth", Usage: "a key depth from the master", Required: true,
+      Name: "depth", Usage: "a depth of the child key from the master key",
+      Required: true,
     },
     &cli.IntFlag{
-      Name: "index", Usage: "a key index from the parent", Required: true,
+      Name: "index", Usage: "an index of the child key from the parent key",
+      Required: true,
     },
   }
   return cmd
@@ -434,9 +436,9 @@ extended public key and a key index
 func pathDeriveCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "path",
-    Usage: `Derive an extended private or public key defined by a HD path
+    Usage: `Derive extended private and public keys defined by a HD path
   stdin: a mnemonic string
-  stdout: an extended private or public key in hex in YAML`,
+  stdout: extended private and public keys in hex in YAML`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
       pass := cmd.String("passphrase")
       path := cmd.String("path")
