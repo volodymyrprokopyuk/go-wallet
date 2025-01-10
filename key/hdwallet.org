@@ -285,7 +285,7 @@ func MasterDerive(seed []byte) *ExtKey {
     a 32 bytes parent chain code
   - Derive a parent public key from the parent private key by using the
     secp256k1 multiplication
-  - Produce a authenticated hash by using the HMAC-SHA512 message authenticated
+  - Produce an authenticated hash by using the HMAC-SHA512 message authenticated
     code function with a concatenation of the compressed parent public key and
     the index of the child key as data, and the parent chain code as a key
   - Split the authenticated hash into a 32 bytes child private key base and a 32
@@ -331,7 +331,7 @@ func PrivateDerive(prve []byte, depth uint8, index uint32) *ExtKey {
   - Derive a parent public key from the parent private key by using the
     secp256k1 multiplication
   - Create a hardened index by adding 2^{31} to the index
-  - Produce a authenticated hash by using the HMAC-SHA512 message authenticated
+  - Produce an authenticated hash by using the HMAC-SHA512 message authenticated
     code function with a concatenation of the parent private key prefixed with
     the =0x00= prefix and the hardened index of the child key as data, and the
     parent chain code as a key
@@ -372,11 +372,232 @@ func HardenedDerive(prve []byte, depth uint8, index uint32) *ExtKey {
 
 *** Public derive
 
+- Public derive :: The =PublicDerive= function takes an extended public key, a
+  depth of a child key from the master key, an index of a child key from the
+  parent key, and produces a child extended public key. The public derive
+  function
+  - Split the parent extended public key into a 32 bytes parent public key and
+    a 32 bytes parent chain code
+  - Produce an authenticated hash by using the HMAC-SHA512 message authenticated
+    code function with a concatenation of the compressed parent public key and
+    the index of the child key as data, and the parent chain code as a key
+  - Split the authenticated hash into a 32 bytes child public key base and a 32
+    bytes child chain code
+  - Calculate a point on the secp256k1 elliptic curve by multiplying the child
+    public key base by the generator point
+  - Add the uncompressed parent public key to the point on the secp256k1
+    elliptic curve to derive the child public key
+  - A concatenation of the child private key prefixed with the =0x00= prefix
+    with the child chain code is the extended child private key =xprv=
+  - A concatenation of the compressed child public key with the child chain
+    code is the extended child public key =xpub=
+  #+BEGIN_SRC go
+func PublicDerive(pube []byte, depth uint8, index uint32) *ExtKey {
+  parPubc, parCode := pube[:33], pube[33:]
+  idx := make([]byte, 4)
+  binary.BigEndian.PutUint32(idx, index)
+  var data bytes.Buffer
+  data.Write(parPubc) // Parent public compressed
+  data.Write(idx)
+  hmac := crypto.HMACSHA512(data.Bytes(), parCode)
+  pb, code := hmac[:32], hmac[32:]
+  pub := new(ecdsa.PublicKey)
+  pub.Curve = ecc.P256k1()
+  pub.X, pub.Y = pub.ScalarBaseMult(pb)
+  parX, parY := ecc.UnmarshalCompressed(ecc.P256k1(), parPubc)
+  pubx, puby := pub.Add(pub.X, pub.Y, parX, parY)
+  ekey := NewExtPubKey(pubx, puby, code, depth, index)
+  ekey.Xpub = EkeyEncode(xpubVer, depth, parPubc, index, code, ekey.Pubc)
+  return ekey
+}
+  #+END_SRC
+
 *** Path derive
+
+- Path derive :: The =PathDerive= function takes a mnemonic, an optional
+  passphrase, and a HD path, and derives extended private and public keys as
+  specified by the HD path e.g. m/0'/1. The path derive function derives a 512
+  bits seed from the mnemonic and an optional passphrase. Next, the extended
+  master private and public keys are derived from the seed. Then, the HD path is
+  parsed into the derivation segments starting from either the master private
+  key =m= or the master public key =M=. Each derivation segment increases by one
+  the depth of the child keys from the master key. Each derivation segment
+  indicates the index of the child key from the parent and whether the normal
+  derivation or the hardened derivation marked with the prime ='= symbol has to
+  be used. The path derive function process each segment in order starting from
+  the extended master private or public key derived from the seed, which, in
+  turn, is derived from the mnemonic and an optional passphrase. The extended
+  keys derived from the current derivation segment are used as input to derive
+  child extended keys from the next derivation segment
+  - Private derivation :: If a HD path starts from an extended private key =m=,
+    then either the normal private derivation =/index= or the hardened private
+    derivation =/index'= is possible. The normal private derivation uses the
+    compressed parent public key, while the hardened derivation uses the parent
+    private key prefixed with the =0x00= prefix. The input for both the normal
+    private derivation and the hardened private derivation is the same: an
+    extended parent private key, a depth, and an index of the child private key
+  - Public derivation :: If a HD path starts from an extended public key =M=,
+    the only the normal public derivation =/index= is possible. The normal
+    public derivation uses only the compressed parent public key. The input for
+    the normal public derivation is an extended parent public key, a depth, and
+    an index fo the child public key
+  The path derive function
+  - Reject an invalid private =m= or public =M= HD path
+  - Derive a 512 bits seed from the mnemonic and an optional passphrase
+  - Derive extended private and public keys from the seed
+  - For the private derivation
+    - Parse the private derivation HD path. For each derivation segment
+      - Increase by one the depth of a child key
+      - Parse the index of a child key
+      - Perform the hardened derivation if the derivation segment indicates the
+        hardened derivation, otherwise perform the private derivation by passing
+        the extended parent private key, the depth, and the index in both cases
+      - Use the derived child private key as input to process the next derivation
+        segment
+  - For the public derivation
+    - Parse the public derivation HD path. For each derivation segment
+      - Increase by one the depth of a child key
+      - Parse the index of a child key
+      - Perform the public derivation by passing the extended parent public key,
+        the depth, and the index
+      - Use the derived child public key as input to process the next derivation
+        segment
+  - Return the final extended private or public key
+  #+BEGIN_SRC go
+func PathDerive(mnemonic, passphrase, path string) (*ExtKey, error) {
+  if !rePrvPath.MatchString(path) && !rePubPath.MatchString(path) {
+    return nil, fmt.Errorf("path derive: invalid path: %s", path)
+  }
+  seed := SeedDerive(mnemonic, passphrase)
+  ekey := MasterDerive(seed)
+  depth := uint8(0)
+  if strings.HasPrefix(path, "m") { // Private key derivation
+    for _, seg := range rePrvSeg.FindAllStringSubmatch(path, -1) {
+      depth++
+      index, _ := strconv.ParseInt(seg[1], 10, 32)
+      hardened := len(seg[2]) != 0
+      prve := append(ekey.Prv, ekey.Code...)
+      if hardened {
+        ekey = HardenedDerive(prve, depth, uint32(index))
+      } else {
+        ekey = PrivateDerive(prve, depth, uint32(index))
+      }
+    }
+  } else { // Public key derivation
+    for _, seg := range rePubSeg.FindAllStringSubmatch(path, -1) {
+      depth++
+      index, _ := strconv.ParseInt(seg[1], 10, 32)
+      pube := append(ekey.Pubc, ekey.Code...)
+      ekey = PublicDerive(pube, depth, uint32(index))
+    }
+  }
+  return ekey, nil
+}
+  #+END_SRC
 
 *** Extended key encode
 
+- Extended key encode :: The =EkeyEncode= function takes a 4 bytes version
+  indicating either a private or a public key has to be encoded, a depth of the
+  key from the master key, a compressed parent public key, or a hash of a
+  compressed parent key, or =nil= for a master key, an index of the key from the
+  parent key, a chain code, a private key or a compressed public key, appends an
+  error detecting checksum, and base58 encodes the extended key including all
+  the above key information. The extended key encode function
+  - Write the 4 bytes version indicating whether a private or a public key has
+    to be encoded
+  - Write the 1 byte depth of the key from the master key
+  - Write the first 4 bytes of the hash of the compressed parent public key. The
+    parent hash is the combination of ~RIPEMD160(SHA256(parent.pubc))~. The
+    parent has of a master key is =0x00000000=
+  - Write the 4 bytes index of the key from the parent key
+  - Write either the 33 bytes private key prefixed with the =0x00= prefix or the
+    33 bytes compressed public key
+  - Write the first 4 bytes of the error detecting checksum. The hash of the
+    error detecting checksum is the double SHA256 hash of the above data
+  - Base58 encode the 82 bytes data including the checksum
+  - Return the base58 encoded extended private or public key
+  #+BEGIN_SRC go
+func EkeyEncode(
+  version []byte, depth uint8, parent []byte, index uint32, code, key []byte,
+) string {
+  var data bytes.Buffer
+  data.Write(version)
+  data.Write([]byte{depth})
+  switch {
+  case parent == nil: // Master key
+    data.Write([]byte{0x00, 0x00, 0x00, 0x00})
+  case len(parent) == 4: // Parent hash
+    data.Write(parent)
+  default: // Parent pubc
+    hash := crypto.RIPEMD160(crypto.SHA256(parent))
+    data.Write(hash[:4])
+  }
+  idx := make([]byte, 4)
+  binary.BigEndian.PutUint32(idx, index)
+  data.Write(idx)
+  data.Write(code)
+  if len(key) == 32 { // Private key
+    data.Write([]byte{0x00})
+  }
+  data.Write(key)
+  csum := crypto.SHA256(crypto.SHA256(data.Bytes()))
+  data.Write(csum[:4])
+  str := crypto.Base58Enc(data.Bytes())
+  return str
+}
+  #+END_SRC
+
 *** Extended key decode
+
+- Extended key decode :: The =EkeyDecode= function takes an encoded extended
+  private or public key and decodes the key into an extended private or public
+  key, the depth of the key from the master key, and the index of the key from
+  the parent key. The extended key decode function checks the embedded error
+  detecting checksum and rejects invalid keys. The exteded key decode function
+  - Base58 decode the encoded extended private or public key
+  - Reject an invalid key if the embedded checksum does not match the computed
+    checksum
+  - Parse the 4 bytes version
+  - Parse the 1 byte depth of the key from the master key
+  - Parse the 4 bytes hash of the compressed parent public key
+  - Parse the 4 bytes index of the key from the parent key
+  - Parse the 32 bytes chain code
+  - Parse either the 33 bytes private key prefixed with the =0x00= prefix or the
+    33 bytes compressed public key
+  - Return either the extended private key or the extended public key
+  #+BEGIN_SRC go
+func EkeyDecode(str string) (*ExtKey, error) {
+  data, err := crypto.Base58Dec(str)
+  if err != nil {
+    return nil, err
+  }
+  csum := data[78:]
+  hash := crypto.SHA256(crypto.SHA256(data[:78]))
+  if !slices.Equal(hash[:4], csum) {
+    return nil, fmt.Errorf("extended key decode: invalid checksum")
+  }
+  version := data[:4]
+  depth := uint8(data[4])
+  parent := data[5:9]
+  index := binary.BigEndian.Uint32(data[9:13])
+  code := data[13:45]
+  if slices.Equal(version, xprvVer) { // Decode a private key
+    prv := data[46:78]
+    key := KeyDerive(prv)
+    ekey := &ExtKey{PrvKey: *key, Code: code, Depth: depth, Index: index}
+    ekey.Xprv = EkeyEncode(xprvVer, depth, parent, index, code, ekey.Prv)
+    ekey.Xpub = EkeyEncode(xpubVer, depth, parent, index, code, ekey.Pubc)
+    return ekey, nil
+  } else { // Decode a public key
+    pubc := data[45:78]
+    pubx, puby := ecc.UnmarshalCompressed(ecc.P256k1(), pubc)
+    ekey := NewExtPubKey(pubx, puby, code, depth, index)
+    ekey.Xpub = EkeyEncode(xpubVer, depth, parent, index, code, ekey.Pubc)
+    return ekey, nil
+  }
+}
+  #+END_SRC
 
 ** Testing and usage
 

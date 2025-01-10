@@ -64,14 +64,14 @@ func EkeyDecode(str string) (*ExtKey, error) {
   parent := data[5:9]
   index := binary.BigEndian.Uint32(data[9:13])
   code := data[13:45]
-  if slices.Equal(version, xprvVer) {
+  if slices.Equal(version, xprvVer) { // Decode a private key
     prv := data[46:78]
     key := KeyDerive(prv)
     ekey := &ExtKey{PrvKey: *key, Code: code, Depth: depth, Index: index}
     ekey.Xprv = EkeyEncode(xprvVer, depth, parent, index, code, ekey.Prv)
     ekey.Xpub = EkeyEncode(xpubVer, depth, parent, index, code, ekey.Pubc)
     return ekey, nil
-  } else {
+  } else { // Decode a public key
     pubc := data[45:78]
     pubx, puby := ecc.UnmarshalCompressed(ecc.P256k1(), pubc)
     ekey := NewExtPubKey(pubx, puby, code, depth, index)
@@ -148,39 +148,47 @@ func PublicDerive(pube []byte, depth uint8, index uint32) *ExtKey {
   data.Write(idx)
   hmac := crypto.HMACSHA512(data.Bytes(), parCode)
   pb, code := hmac[:32], hmac[32:]
-  parX, parY := ecc.UnmarshalCompressed(ecc.P256k1(), parPubc)
   pub := new(ecdsa.PublicKey)
   pub.Curve = ecc.P256k1()
   pub.X, pub.Y = pub.ScalarBaseMult(pb)
+  parX, parY := ecc.UnmarshalCompressed(ecc.P256k1(), parPubc)
   pubx, puby := pub.Add(pub.X, pub.Y, parX, parY)
   ekey := NewExtPubKey(pubx, puby, code, depth, index)
   ekey.Xpub = EkeyEncode(xpubVer, depth, parPubc, index, code, ekey.Pubc)
   return ekey
 }
 
-var rePath = regexp.MustCompile(`^[mM](/\d+'?)*$`)
-var rePathSeg = regexp.MustCompile(`/(\d+)('?)`)
+var rePrvPath = regexp.MustCompile(`^m(?:/\d+'?)*$`)
+var rePrvSeg = regexp.MustCompile(`/(\d+)('?)`)
+var rePubPath = regexp.MustCompile(`^M(?:/\d+)*$`)
+var rePubSeg = regexp.MustCompile(`/(\d+)`)
 
 func PathDerive(mnemonic, passphrase, path string) (*ExtKey, error) {
-  if !rePath.MatchString(path) {
+  if !rePrvPath.MatchString(path) && !rePubPath.MatchString(path) {
     return nil, fmt.Errorf("path derive: invalid path: %s", path)
   }
   seed := SeedDerive(mnemonic, passphrase)
   ekey := MasterDerive(seed)
   depth := uint8(0)
-  for _, seg := range rePathSeg.FindAllStringSubmatch(path, -1) {
-    index, _ := strconv.ParseInt(seg[1], 10, 32)
-    hardened := len(seg[2]) != 0
-    depth++
-    prve := append(ekey.Prv, ekey.Code...)
-    if hardened {
-      ekey = HardenedDerive(prve, depth, uint32(index))
-    } else {
-      ekey = PrivateDerive(prve, depth, uint32(index))
+  if strings.HasPrefix(path, "m") { // Private key derivation
+    for _, seg := range rePrvSeg.FindAllStringSubmatch(path, -1) {
+      depth++
+      index, _ := strconv.ParseInt(seg[1], 10, 32)
+      hardened := len(seg[2]) != 0
+      prve := append(ekey.Prv, ekey.Code...)
+      if hardened {
+        ekey = HardenedDerive(prve, depth, uint32(index))
+      } else {
+        ekey = PrivateDerive(prve, depth, uint32(index))
+      }
     }
-  }
-  if strings.HasPrefix(path, "M") {
-    ekey.Prv, ekey.Xprv = nil, ""
+  } else { // Public key derivation
+    for _, seg := range rePubSeg.FindAllStringSubmatch(path, -1) {
+      depth++
+      index, _ := strconv.ParseInt(seg[1], 10, 32)
+      pube := append(ekey.Pubc, ekey.Code...)
+      ekey = PublicDerive(pube, depth, uint32(index))
+    }
   }
   return ekey, nil
 }
