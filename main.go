@@ -16,10 +16,11 @@ func walletCmd() *cli.Command {
     Usage: "EC keys and signatures, a HD wallet, cryptographic functions",
     Version: "0.1.0",
     Commands: []*cli.Command{
-      hdwallet.ECKeyCmd(), hdwallet.AddressCmd(),
+      hdwallet.ECKeyCmd(), hdwallet.ECDSACmd(), hdwallet.AddressCmd(),
       hdwallet.MnemonicCmd(), hdwallet.HDCmd(),
-      crypto.SHA256Cmd(), crypto.Keccak256Cmd(), crypto.HMACSHA512Cmd(),
-      crypto.PBKDF2SHA512Cmd(), crypto.Base58Cmd(), crypto.Base58CheckCmd(),
+      crypto.SHA256Cmd(), crypto.Keccak256Cmd(),
+      crypto.HMACSHA512Cmd(), crypto.PBKDF2SHA512Cmd(),
+      crypto.Base58Cmd(), crypto.Base58CheckCmd(),
     },
   }
   return cmd

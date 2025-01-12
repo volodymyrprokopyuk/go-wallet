@@ -107,20 +107,33 @@ func ECKeyDerive(prv []byte) *PrvKey {
   return key
 }
 
-// func sign(key string, hash []byte) ([]byte, error) {
-//   prv, err := keyDerive(key)
-//   if err != nil {
-//     return nil, err
-//   }
-//   return ecc.SignBytes(prv, hash, ecc.LowerS | ecc.RecID)
-// }
+func ECDSASign(hash, prv []byte) ([]byte, error) {
+  if len(hash) != 32 {
+    return nil, fmt.Errorf("ECDSA sign: invalid hash length: %d", len(hash))
+  }
+  if len(prv) != 32 {
+    return nil, fmt.Errorf("ECDSA sign: invalid private key length: %d", len(prv))
+  }
+  k := &ecdsa.PrivateKey{D: new(big.Int).SetBytes(prv)}
+  k.PublicKey.Curve = ecc.P256k1()
+  return ecc.SignBytes(k, hash, ecc.LowerS | ecc.RecID)
+}
 
-// func verify(hash, sig []byte, pub string) (bool, error) {
-//   p, err := ecc.RecoverPubkey("P-256k1", hash, sig)
-//   if err != nil {
-//     return false, err
-//   }
-//   rpub := fmt.Sprintf("%x%x", p.X, p.Y)
-//   valid := rpub == pub
-//   return valid, nil
-// }
+func ECDSAVerify(hash, sig, pub []byte) bool {
+  k := &ecdsa.PublicKey{
+    Curve: ecc.P256k1(),
+    X: new(big.Int).SetBytes(pub[1:33]),
+    Y: new(big.Int).SetBytes(pub[33:]),
+  }
+  valid := ecc.VerifyBytes(k, hash, sig, ecc.LowerS | ecc.RecID)
+  return valid
+}
+
+func ECDSARecover(hash, sig []byte) (*PubKey, error) {
+  k, err := ecc.RecoverPubkey("P-256k1", hash, sig)
+  if err != nil {
+    return nil, err
+  }
+  pub := NewPubKey(k.X, k.Y)
+  return pub, nil
+}

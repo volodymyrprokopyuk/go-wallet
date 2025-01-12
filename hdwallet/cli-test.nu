@@ -308,21 +308,21 @@ def "test hd path public" [] {
 
 # print success
 
-$env.PATH = $env.PATH | prepend ("." | path expand)
-let prv = open /dev/urandom | first 32 | wallet keccak256
-print $prv
-# 838c2f329e8e98855bd648ca95e3939fc118a0f63b703fb443d0e1f0eaae33cb
-let pub = $prv | wallet eckey derive | from yaml
-print $pub
-# ╭──────┬────────────────────────────────────────────────────────────────────────────────────╮
-# │ prv  │ 838c2f329e8e98855bd648ca95e3939fc118a0f63b703fb443d0e1f0eaae33cb                   │
-# │ pub  │ 04c694264d1933cb3d3b1a4073b3189452173d7f510312c5c86c9689574a6d25e81523533b578eb09d │
-# │      │ 0b4e9414f53a3bd259843aeb22ea677025f51f8b90d8d05e                                   │
-# │ pubc │ 02c694264d1933cb3d3b1a4073b3189452173d7f510312c5c86c9689574a6d25e8                 │
-# ╰──────┴────────────────────────────────────────────────────────────────────────────────────╯
-let addr = $pub.pub | wallet address derive
-print $addr
-# 445f86f47591cc2161e5efbb31b708e964cc8c6d
-let addr2 = $pub.pubc | wallet address derive
-print $addr2
-# 445f86f47591cc2161e5efbb31b708e964cc8c6d
+
+let key = wallet eckey generate | from yaml
+print $key
+# let hash = "message" | wallet keccak256
+let hash = "message" | wallet sha256
+# let sig = cast wallet sign --private-key $key.prv --no-hash $hash
+let sig = cast wallet sign --private-key $key.prv --data $hash
+print $sig
+let addr = $key.pub | wallet address derive
+let valid = cast wallet verify --address $addr "message" $sig
+print $valid
+
+# let sig2 = $hash | wallet ecdsa sign --prv $key.prv
+# print $sig2
+# let valid2 = $hash | wallet ecdsa verify --sig $sig2 --pub $key.pub | into bool
+# print $valid2
+# let pub2 = $hash | wallet ecdsa recover --sig $sig2 | from yaml
+# print $pub2

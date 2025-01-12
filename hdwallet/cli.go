@@ -13,12 +13,14 @@ func ECKeyCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "eckey",
     Usage: "Generate a secp256k1 key pair. Derive a secp256k1 public key",
-    Commands: []*cli.Command{keyGenerateCmd(), keyDeriveCmd()},
+    Commands: []*cli.Command{
+      ecKeyGenerateCmd(), ecKeyDeriveCmd(),
+    },
   }
   return cmd
 }
 
-func keyGenerateCmd() *cli.Command {
+func ecKeyGenerateCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "generate",
     Usage: `Generate a secp256k1 key pair
@@ -35,7 +37,7 @@ func keyGenerateCmd() *cli.Command {
   return cmd
 }
 
-func keyDeriveCmd() *cli.Command {
+func ecKeyDeriveCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "derive",
     Usage: `Derive a secp256k1 public key from an external secp256k1 private key
@@ -55,64 +57,120 @@ func keyDeriveCmd() *cli.Command {
   return cmd
 }
 
-// func signCmd() *cobra.Command {
-//   cmd := &cobra.Command{
-//     Use: "sign",
-//     Short: `Sign a message with a private key
-//   stdin: a hash of the message
-//   stdout: the signature of the message`,
-//     RunE: func(cmd *cobra.Command, args []string) error {
-//       key, _ := cmd.Flags().GetString("key")
-//       var hash string
-//       _, err := fmt.Fscanf(os.Stdin, "%s", &hash)
-//       if err != nil {
-//         return err
-//       }
-//       sig, err := sign(key, []byte(hash))
-//       if err != nil {
-//         return err
-//       }
-//       fmt.Println(base64.StdEncoding.EncodeToString(sig))
-//       return nil
-//     },
-//   }
-//   cmd.Flags().String("key", "", "private key")
-//   _ = cmd.MarkFlagRequired("key")
-//   return cmd
-// }
+func ECDSACmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "ecdsa",
+    Usage: "Sign a hash using the ECDSA. Verify a signature. Recover a public key",
+    Commands: []*cli.Command{
+      ecdsaSignCmd(), ecdsaVerifyCmd(), ecdsaRecoverCmd(),
+    },
+  }
+  return cmd
+}
 
-// func verifyCmd() *cobra.Command {
-//   cmd := &cobra.Command{
-//     Use: "verify",
-//     Short: `Verify a signature given a message and a public key
-//   stdin: a hash of the message
-//   stdout: true if the signature is valid, false otherwise`,
-//     RunE: func(cmd *cobra.Command, args []string) error {
-//       var hash string
-//       _, err := fmt.Fscanf(os.Stdin, "%s", &hash)
-//       if err != nil {
-//         return err
-//       }
-//       ssig, _ := cmd.Flags().GetString("sig")
-//       sig, err := base64.StdEncoding.DecodeString(ssig)
-//       if err != nil {
-//         return err
-//       }
-//       pub, _ := cmd.Flags().GetString("pub")
-//       valid, err := verify([]byte(hash), sig, pub)
-//       if err != nil {
-//         return err
-//       }
-//       fmt.Println(valid)
-//       return nil
-//     },
-//   }
-//   cmd.Flags().String("sig", "", "message signature")
-//   _ = cmd.MarkFlagRequired("pub")
-//   cmd.Flags().String("pub", "", "public key")
-//   _ = cmd.MarkFlagRequired("pub")
-//   return cmd
-// }
+func ecdsaSignCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "sign",
+    Usage: `Sign a hash using the ECDSA over the secp256k1 elliptic curve
+  stdin: a hash in hex
+  stdout: a signature of the hash in hex`,
+    Action: func(ctx context.Context, cmd *cli.Command) error {
+      var prv []byte
+      _, err := fmt.Sscanf(cmd.String("prv"), "%x", &prv)
+      if err != nil {
+        return err
+      }
+      var hash []byte
+      _, err = fmt.Scanf("%x", &hash)
+      if err != nil {
+        return err
+      }
+      sig, err := ECDSASign(hash, []byte(prv))
+      if err != nil {
+        return err
+      }
+      fmt.Printf("%x\n", sig)
+      return nil
+    },
+  }
+  cmd.Flags = []cli.Flag{
+    &cli.StringFlag{
+      Name: "prv", Usage: "a private key in hex", Required: true,
+    },
+  }
+  return cmd
+}
+
+func ecdsaVerifyCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "verify",
+    Usage: `Verify a signature using the ECDSA over the secp256k1 elliptic curve
+  stdin: a hash in hex
+  stdout: true if the signature is valid, false otherwise`,
+    Action: func(ctx context.Context, cmd *cli.Command) error {
+      var sig []byte
+      _, err := fmt.Sscanf(cmd.String("sig"), "%x", &sig)
+      if err != nil {
+        return err
+      }
+      var pub []byte
+      _, err = fmt.Sscanf(cmd.String("pub"), "%x", &pub)
+      if err != nil {
+        return err
+      }
+      var hash []byte
+      _, err = fmt.Scanf("%x", &hash)
+      if err != nil {
+        return err
+      }
+      valid := ECDSAVerify(hash, sig, pub)
+      fmt.Printf("%t\n", valid)
+      return nil
+    },
+  }
+  cmd.Flags = []cli.Flag{
+    &cli.StringFlag{
+      Name: "sig", Usage: "a signature in hex", Required: true,
+    },
+    &cli.StringFlag{
+      Name: "pub", Usage: "a public key in hex", Required: true,
+    },
+  }
+  return cmd
+}
+
+func ecdsaRecoverCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "recover",
+    Usage: `Recover a public key from a hash and its ECDSA signature
+  stdin: a hash in hex
+  stdout: a public key in hex in YAML`,
+    Action: func(ctx context.Context, cmd *cli.Command) error {
+      var sig []byte
+      _, err := fmt.Sscanf(cmd.String("sig"), "%x", &sig)
+      if err != nil {
+        return err
+      }
+      var hash []byte
+      _, err = fmt.Scanf("%x", &hash)
+      if err != nil {
+        return err
+      }
+      pub, err := ECDSARecover(hash, sig)
+      if err != nil {
+        return err
+      }
+      fmt.Printf("%s\n", pub.YAMLEncode())
+      return nil
+    },
+  }
+  cmd.Flags = []cli.Flag{
+    &cli.StringFlag{
+      Name: "sig", Usage: "a signature in hex", Required: true,
+    },
+  }
+  return cmd
+}
 
 func AddressCmd() *cli.Command {
   cmd := &cli.Command{
