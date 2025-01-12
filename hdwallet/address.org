@@ -5,16 +5,25 @@
 
 :CONTENTS:
 - [[#concepts-and-purpose][Concepts and purpose]]
+  - [[#ethereum-address][Ethereum address]]
   - [[#erc-55-ethereum-address-encoding][ERC-55 Ethereum address encoding]]
 - [[#design-and-implementation][Design and implementation]]
+  - [[#address-derive][Address derive]]
   - [[#address-encode][Address encode]]
   - [[#address-verify][Address verify]]
 - [[#testing-and-usage][Testing and usage]]
-  - [[#testing-address-encode-and-address-verify-cli-commands][Testing address encode and address verify CLI commands]]
-  - [[#using-address-encode-and-address-verify-cli-commands][Using address encode and address verify CLI commands]]
+  - [[#testing-address-derive-address-encode-and-address-verify-cli-commands][Testing address derive, address encode, and address verify CLI commands]]
+  - [[#using-address-derive-address-encode-and-address-verify-cli-commands][Using address derive, address encode, and address verify CLI commands]]
 :END:
 
 ** Concepts and purpose
+
+
+*** Ethereum address
+
+- Ethereum address :: An Ethereum address ~a = keccak256(K)[12:]~ is the last 20
+  bytes of the Keccak256 hash of the uncompressed public key without the =0x04=
+  prefix
 
 *** ERC-55 Ethereum address encoding
 
@@ -29,6 +38,29 @@
   protect against mistakes with the 99.986% accuracy
 
 ** Design and implementation
+
+*** Address derive
+
+- Address derive :: The =AddressDerive= function derives an Ethereum address
+  from a compressed or an uncompressed public key by taking the last 20 bytes of
+  the Keccak256 hash of the uncompressed public key without the =0x04= prefix.
+  The address derive function converts a compressed public key into an
+  uncompressed public key before applying the Keccak256 hash function
+  #+BEGIN_SRC go
+func AddressDerive(pub []byte) ([]byte, error) {
+  switch {
+  case len(pub) == 65 && pub[0] == 0x04: // Uncompressed public key
+  case len(pub) == 33 && (pub[0] == 0x02 || pub[0] == 0x03): // Compressed public key
+    pubx, puby := ecc.UnmarshalCompressed(ecc.P256k1(), pub)
+    pub = NewPubKey(pubx, puby).Pub
+  default:
+    return nil, fmt.Errorf("address derive: invalid public key: %x", pub)
+  }
+  hash := crypto.Keccak256(pub[1:])
+  addr := hash[12:]
+  return addr, nil
+}
+  #+END_SRC
 
 *** Address encode
 
@@ -97,24 +129,27 @@ func AddressEncode(addr []byte) string {
 
 ** Testing and usage
 
-*** Testing =address encode= and =address verify= CLI commands
+*** Testing =address derive=, =address encode=, and =address verify= CLI commands
 
 #+BEGIN_SRC nushell
 go build -o wallet; ./key/cli-test.nu
 #+END_SRC
 
-*** Using =address encode= and =address verify= CLI commands
+*** Using =address derive=, =address encode=, and =address verify= CLI commands
 
 Show the help and usage instructions of the =wallet address= command
 #+BEGIN_SRC nushell
 ./wallet address
 # NAME:
-#    wallet address - Encode and verify an Ethereum address (ERC-55)
+#    wallet address - Derive, encode and verify an Ethereum address (ERC-55)
 
 # USAGE:
 #    wallet address [command [command options]]
 
 # COMMANDS:
+#    derive  Derive an Ethereum address from a secp256k1 public key
+#              stdin: a compressed or uncompressed secp256k1 public key in hex
+#              stdout: an Ethereum address in hex
 #    encode  Encode an Ethereum address (ERC-55)
 #              stdin: an Ethereum address in hex
 #              stdout: an encoded case-sensitive Ethereum address string
@@ -126,6 +161,31 @@ Show the help and usage instructions of the =wallet address= command
 #    --help, -h  show help
 #+END_SRC
 
+Generate a random secp256k1 private key by keccak256 hashing 32 bytes from the
+~/dev/urandom~ CSPRNG. Derive a secp256k1 public key from the private key.
+Compute an Ethereum address from the derived public key both uncompressed and
+compressed forms
+#+BEGIN_SRC nushell
+$env.PATH = $env.PATH | prepend ("." | path expand)
+let prv = open /dev/urandom | first 32 | wallet keccak256
+print $prv
+# 838c2f329e8e98855bd648ca95e3939fc118a0f63b703fb443d0e1f0eaae33cb
+let pub = $prv | wallet eckey derive | from yaml
+print $pub
+# ╭──────┬────────────────────────────────────────────────────────────────────────────────────╮
+# │ prv  │ 838c2f329e8e98855bd648ca95e3939fc118a0f63b703fb443d0e1f0eaae33cb                   │
+# │ pub  │ 04c694264d1933cb3d3b1a4073b3189452173d7f510312c5c86c9689574a6d25e81523533b578eb09d │
+# │      │ 0b4e9414f53a3bd259843aeb22ea677025f51f8b90d8d05e                                   │
+# │ pubc │ 02c694264d1933cb3d3b1a4073b3189452173d7f510312c5c86c9689574a6d25e8                 │
+# ╰──────┴────────────────────────────────────────────────────────────────────────────────────╯
+let addr = $pub.pub | wallet address derive
+print $addr
+# 445f86f47591cc2161e5efbb31b708e964cc8c6d
+let addr2 = $pub.pubc | wallet address derive
+print $addr2
+# 445f86f47591cc2161e5efbb31b708e964cc8c6d
+#+END_SRC
+
 Generate a secp256k1 key pair. Compute the Ethereum address from the public key.
 Encode the address and incorporate the error detecting checksum. Note, the
 encoded address has some letters capitalized, while the initial address is all
@@ -135,7 +195,7 @@ Verify the encoded address with errors and confirm that the validation returns
 the invalid checksum error
 #+BEGIN_SRC nushell
 $env.PATH = $env.PATH | prepend ("." | path expand)
-let key = wallet key generate | from yaml
+let key = wallet eckey generate | from yaml
 print $key
 # ╭──────┬────────────────────────────────────────────────────────────────────────────────────╮
 # │ prv  │ 840257eb47ab36bbd952b18f856eb399c57534d8eacda2765e89b799f214bde5                   │
@@ -143,7 +203,7 @@ print $key
 # │      │ f59d9b72cf6df6b9fa3d2b45099388b503fbcfc2d77019ed                                   │
 # │ pubc │ 03e9eb5e40adab72f15ffe5b650498bc320252b92284c2522e3a30f5ed0bbe7da9                 │
 # ╰──────┴────────────────────────────────────────────────────────────────────────────────────╯
-let addr = $key.pub | wallet key address
+let addr = $key.pub | wallet address derive
 print $addr
 # 883477898a318f37fd7e4f19f9d3e47400f5bd5f
 let encAddr = $addr | wallet address encode

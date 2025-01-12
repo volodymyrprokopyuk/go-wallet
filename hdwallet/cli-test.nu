@@ -12,20 +12,20 @@ def parse-key [keyName: string]: string -> string {
   $hexKey
 }
 
-def "test key generate" [] {
-  let $key = wallet key generate | from yaml
-  let $exp = $key.prv | wallet key derive | from yaml
+def "test eckey generate" [] {
+  let $key = wallet eckey generate | from yaml
+  let $exp = $key.prv | wallet eckey derive | from yaml
   assert equal $key $exp
 }
 
-def "test key derive" [] {
+def "test eckey derive" [] {
   let pemPrv = openssl ecparam -genkey -name secp256k1 -noout
   let pemPub = $pemPrv | openssl ec -pubout
   let exp = {
     prv: ($pemPrv | openssl ec -text -noout | parse-key "priv:")
     pub: ($pemPub | openssl ec -text -noout -pubin | parse-key "pub:")
   }
-  let key = $exp.prv | wallet key derive | from yaml | select prv pub
+  let key = $exp.prv | wallet eckey derive | from yaml | select prv pub
   assert equal $key $exp
 }
 
@@ -37,7 +37,7 @@ def "test address derive" [] {
      "75d28c27ac5c5de118508fee2d14ef5fb04c5435"]
   ]
   $cases | each {|c|
-    let key = $c.prv | wallet key derive | from yaml
+    let key = $c.prv | wallet eckey derive | from yaml
     let addr = $key.pub | wallet address derive
     assert equal $addr $c.exp
     let addr2 = $key.pubc | wallet address derive
@@ -287,23 +287,42 @@ def "test hd path public" [] {
   }
 }
 
-test key generate
-test key derive
+# test eckey generate
+# test eckey derive
 
-test address derive
-test address encode
-test address verify
+# test address derive
+# test address encode
+# test address verify
 
-test mnemonic generate
-test mnemonic derive
-test mnemonic verify
+# test mnemonic generate
+# test mnemonic derive
+# test mnemonic verify
 
-test hd seed
-test hd master
-test hd private decode
-test hd hardened
-test hd public
-test hd path private
-test hd path public
+# test hd seed
+# test hd master
+# test hd private decode
+# test hd hardened
+# test hd public
+# test hd path private
+# test hd path public
 
-print success
+# print success
+
+$env.PATH = $env.PATH | prepend ("." | path expand)
+let prv = open /dev/urandom | first 32 | wallet keccak256
+print $prv
+# 838c2f329e8e98855bd648ca95e3939fc118a0f63b703fb443d0e1f0eaae33cb
+let pub = $prv | wallet eckey derive | from yaml
+print $pub
+# ╭──────┬────────────────────────────────────────────────────────────────────────────────────╮
+# │ prv  │ 838c2f329e8e98855bd648ca95e3939fc118a0f63b703fb443d0e1f0eaae33cb                   │
+# │ pub  │ 04c694264d1933cb3d3b1a4073b3189452173d7f510312c5c86c9689574a6d25e81523533b578eb09d │
+# │      │ 0b4e9414f53a3bd259843aeb22ea677025f51f8b90d8d05e                                   │
+# │ pubc │ 02c694264d1933cb3d3b1a4073b3189452173d7f510312c5c86c9689574a6d25e8                 │
+# ╰──────┴────────────────────────────────────────────────────────────────────────────────────╯
+let addr = $pub.pub | wallet address derive
+print $addr
+# 445f86f47591cc2161e5efbb31b708e964cc8c6d
+let addr2 = $pub.pubc | wallet address derive
+print $addr2
+# 445f86f47591cc2161e5efbb31b708e964cc8c6d

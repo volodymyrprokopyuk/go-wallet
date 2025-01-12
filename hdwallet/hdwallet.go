@@ -1,4 +1,4 @@
-package key
+package hdwallet
 
 import (
 	"bytes"
@@ -66,7 +66,7 @@ func EkeyDecode(str string) (*ExtKey, error) {
   code := data[13:45]
   if slices.Equal(version, xprvVer) { // Decode a private key
     prv := data[46:78]
-    key := KeyDerive(prv)
+    key := ECKeyDerive(prv)
     ekey := &ExtKey{PrvKey: *key, Code: code, Depth: depth, Index: index}
     ekey.Xprv = EkeyEncode(xprvVer, depth, parent, index, code, ekey.Prv)
     ekey.Xpub = EkeyEncode(xpubVer, depth, parent, index, code, ekey.Pubc)
@@ -90,7 +90,7 @@ func MasterDerive(seed []byte) *ExtKey {
   depth, index := uint8(0), uint32(0)
   hmac := crypto.HMACSHA512(seed, []byte("Bitcoin seed"))
   prv, code := hmac[:32], hmac[32:]
-  key := KeyDerive(prv)
+  key := ECKeyDerive(prv)
   ekey := &ExtKey{PrvKey: *key, Code: code, Depth: depth, Index: index}
   ekey.Xprv = EkeyEncode(xprvVer, depth, nil, index, code, prv)
   ekey.Xpub = EkeyEncode(xpubVer, depth, nil, index, code, ekey.Pubc)
@@ -99,7 +99,7 @@ func MasterDerive(seed []byte) *ExtKey {
 
 func PrivateDerive(prve []byte, depth uint8, index uint32) *ExtKey {
   parPrv, parCode := prve[:32], prve[32:]
-  parKey := KeyDerive(parPrv)
+  parKey := ECKeyDerive(parPrv)
   idx := make([]byte, 4)
   binary.BigEndian.PutUint32(idx, index)
   var data bytes.Buffer
@@ -110,7 +110,7 @@ func PrivateDerive(prve []byte, depth uint8, index uint32) *ExtKey {
   prvi := new(big.Int).SetBytes(prv)
   prvi.Add(prvi, new(big.Int).SetBytes(parPrv))
   prvi.Mod(prvi, ecc.P256k1().Params().N)
-  key := KeyDerive(prvi.Bytes())
+  key := ECKeyDerive(prvi.Bytes())
   ekey := &ExtKey{PrvKey: *key, Code: code, Depth: depth, Index: index}
   ekey.Xprv = EkeyEncode(xprvVer, depth, parKey.Pubc, index, code, ekey.Prv)
   ekey.Xpub = EkeyEncode(xpubVer, depth, parKey.Pubc, index, code, ekey.Pubc)
@@ -119,7 +119,7 @@ func PrivateDerive(prve []byte, depth uint8, index uint32) *ExtKey {
 
 func HardenedDerive(prve []byte, depth uint8, index uint32) *ExtKey {
   parPrv, parCode := prve[:32], prve[32:]
-  parKey := KeyDerive(parPrv) // Only for xprv and xpub
+  parKey := ECKeyDerive(parPrv) // Only for xprv and xpub
   index += uint32(1 << 31) // Hardened key index
   idx := make([]byte, 4)
   binary.BigEndian.PutUint32(idx, index)
@@ -132,7 +132,7 @@ func HardenedDerive(prve []byte, depth uint8, index uint32) *ExtKey {
   prvi := new(big.Int).SetBytes(prv)
   prvi.Add(prvi, new(big.Int).SetBytes(parPrv))
   prvi.Mod(prvi, ecc.P256k1().Params().N)
-  key := KeyDerive(prvi.Bytes())
+  key := ECKeyDerive(prvi.Bytes())
   ekey := &ExtKey{PrvKey: *key, Code: code, Depth: depth, Index: index}
   ekey.Xprv = EkeyEncode(xprvVer, depth, parKey.Pubc, index, code, ekey.Prv)
   ekey.Xpub = EkeyEncode(xpubVer, depth, parKey.Pubc, index, code, ekey.Pubc)

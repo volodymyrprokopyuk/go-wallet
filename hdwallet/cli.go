@@ -1,4 +1,4 @@
-package key
+package hdwallet
 
 import (
 	"context"
@@ -9,10 +9,10 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-func KeyCmd() *cli.Command {
+func ECKeyCmd() *cli.Command {
   cmd := &cli.Command{
-    Name: "key",
-    Usage: "Generate a secp256k1 key pair, sign a transaction, verify a signature",
+    Name: "eckey",
+    Usage: "Generate a secp256k1 key pair. Derive a secp256k1 public key",
     Commands: []*cli.Command{keyGenerateCmd(), keyDeriveCmd()},
   }
   return cmd
@@ -24,7 +24,7 @@ func keyGenerateCmd() *cli.Command {
     Usage: `Generate a secp256k1 key pair
   stdout: a secp256k1 key pair in hex in YAML`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
-      key, err := KeyGenerate()
+      key, err := ECKeyGenerate()
       if err != nil {
         return err
       }
@@ -47,7 +47,7 @@ func keyDeriveCmd() *cli.Command {
       if err != nil {
         return err
       }
-      key := KeyDerive(prv)
+      key := ECKeyDerive(prv)
       fmt.Printf("%s\n", key.YAMLEncode())
       return nil
     },
@@ -129,7 +129,7 @@ func addressDeriveCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "derive",
     Usage: `Derive an Ethereum address from a secp256k1 public key
-  stdin: a secp256k1 public key either compressed or uncompressed in hex
+  stdin: a compressed or uncompressed secp256k1 public key in hex
   stdout: an Ethereum address in hex`,
     Action: func(ctx context.Context, cmd *cli.Command) error {
       var pub []byte

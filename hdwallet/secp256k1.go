@@ -1,4 +1,4 @@
-package key
+package hdwallet
 
 import (
 	"bytes"
@@ -90,7 +90,7 @@ func (k *ExtKey) YAMLEncode() string {
   }
 }
 
-func KeyGenerate() (*PrvKey, error)  {
+func ECKeyGenerate() (*PrvKey, error)  {
   k, err := ecdsa.GenerateKey(ecc.P256k1(), rand.Reader)
   if err != nil {
     return nil, err
@@ -99,7 +99,7 @@ func KeyGenerate() (*PrvKey, error)  {
   return key, nil
 }
 
-func KeyDerive(prv []byte) *PrvKey {
+func ECKeyDerive(prv []byte) *PrvKey {
   k := &ecdsa.PrivateKey{D: new(big.Int).SetBytes(prv)}
   k.PublicKey.Curve = ecc.P256k1()
   k.PublicKey.X, k.PublicKey.Y = k.PublicKey.ScalarBaseMult(k.D.Bytes())

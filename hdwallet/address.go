@@ -1,4 +1,4 @@
-package key
+package hdwallet
 
 import (
 	"fmt"
@@ -12,8 +12,8 @@ import (
 
 func AddressDerive(pub []byte) ([]byte, error) {
   switch {
-  case len(pub) == 65 && pub[0] == 0x04:
-  case len(pub) == 33 && (pub[0] == 0x02 || pub[0] == 0x03):
+  case len(pub) == 65 && pub[0] == 0x04: // Uncompressed public key
+  case len(pub) == 33 && (pub[0] == 0x02 || pub[0] == 0x03): // Compressed public key
     pubx, puby := ecc.UnmarshalCompressed(ecc.P256k1(), pub)
     pub = NewPubKey(pubx, puby).Pub
   default:

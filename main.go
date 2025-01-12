@@ -7,21 +7,17 @@ import (
 
 	"github.com/urfave/cli/v3"
 	"github.com/volodymyrprokopyuk/go-wallet/crypto"
-	"github.com/volodymyrprokopyuk/go-wallet/key"
+	"github.com/volodymyrprokopyuk/go-wallet/hdwallet"
 )
 
 func walletCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "wallet",
-    Usage: "EC key pairs, a HD wallet, cryptographic functions",
+    Usage: "EC keys and signatures, a HD wallet, cryptographic functions",
     Version: "0.1.0",
     Commands: []*cli.Command{
-      // EC key pairs, ECDSA sign and verify, Ethereum address
-      key.KeyCmd(), key.AddressCmd(),
-      // HD wallet, mnemonics, seeds, and master keys
-      // HD private, hardened, and public key derivation
-      key.MnemonicCmd(), key.HDCmd(),
-      // Cryptographic functions. Base58 and base58check encoding
+      hdwallet.ECKeyCmd(), hdwallet.AddressCmd(),
+      hdwallet.MnemonicCmd(), hdwallet.HDCmd(),
       crypto.SHA256Cmd(), crypto.Keccak256Cmd(), crypto.HMACSHA512Cmd(),
       crypto.PBKDF2SHA512Cmd(), crypto.Base58Cmd(), crypto.Base58CheckCmd(),
     },

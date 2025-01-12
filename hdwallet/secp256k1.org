@@ -7,16 +7,14 @@
 - [[#concepts-and-purpose][Concepts and purpose]]
   - [[#secp256k1-private-key][secp256k1 private key]]
   - [[#secp256k1-public-key][secp256k1 public key]]
-  - [[#ethereum-address][Ethereum address]]
 - [[#design-and-implementation][Design and implementation]]
   - [[#pubkey-type][PubKey type]]
   - [[#prvkey-type][PrvKey type]]
   - [[#generate-secp256k1-key-pair][Generate secp256k1 key pair]]
   - [[#derive-secp256k1-public-key-from-private-key][Derive secp256k1 public key from private key]]
-  - [[#derive-ethereum-address-from-public-key][Derive Ethereum address from public key]]
 - [[#testing-and-usage][Testing and usage]]
-  - [[#testing-key-generate-key-derive-and-key-address-cli-commands][Testing key generate, key derive, and key address CLI commands]]
-  - [[#using-key-generate-key-derive-and-key-address-cli-commands][Using key generate, key derive, and key address CLI commands]]
+  - [[#testing-eckey-generate-and-eckey-derive-cli-commands][Testing eckey generate and eckey derive CLI commands]]
+  - [[#using-eckey-generate-eckey-derive-cli-commands][Using eckey generate, eckey derive CLI commands]]
 :END:
 
 ** Concepts and purpose
@@ -50,12 +48,6 @@
     =0x02= prefix if the =y= coordinate is even or =0x03= prefix if the =y=
     coordinate is odd. The y coordinate can be unambiguously derived from the x
     coordinate and the parity prefix
-
-*** Ethereum address
-
-- Ethereum address :: An Ethereum address ~a = keccak256(K)[12:]~ is the last 20
-  bytes of the Keccak256 hash of the uncompressed public key without the =0x04=
-  prefix
 
 ** Design and implementation
 
@@ -141,37 +133,24 @@ func KeyDerive(prv []byte) *PrvKey {
 }
   #+END_SRC
 
-*** Derive Ethereum address from public key
-
-- Ethereum address :: The =KeyAddress= function derives an Ethereum address from
-  an uncompressed public key by taking the last 20 bytes of the Keccak256 hash
-  of the uncompressed public key without the =0x04= prefix
-  #+BEGIN_SRC go
-func KeyAddress(pub []byte) []byte {
-  hash := crypto.Keccak256(pub[1:])
-  addr := hash[12:]
-  return addr
-}
-  #+END_SRC
-
 ** Testing and usage
 
-*** Testing =key generate=, =key derive=, and =key address= CLI commands
+*** Testing =eckey generate= and =eckey derive= CLI commands
 
 #+BEGIN_SRC nushell
 go build -o wallet; ./key/cli-test.nu
 #+END_SRC
 
-*** Using =key generate=, =key derive=, and =key address= CLI commands
+*** Using =eckey generate=, =eckey derive= CLI commands
 
-Show the help and usage instructions of the =wallet key= command
+Show the help and usage instructions of the =wallet eckey= command
 #+BEGIN_SRC nushell
-./wallet key
+./wallet eckey
 # NAME:
-#    wallet key - Generate a secp256k1 key pair, sign a transaction, verify a signature
+#    wallet eckey - Generate a secp256k1 key pair. Derive a secp256k1 public key
 
 # USAGE:
-#    wallet key [command [command options]]
+#    wallet eckey [command [command options]]
 
 # COMMANDS:
 #    generate  Generate a secp256k1 key pair
@@ -179,9 +158,6 @@ Show the help and usage instructions of the =wallet key= command
 #    derive    Derive a secp256k1 public key from an external secp256k1 private key
 #                stdin: an external secp256k1 private key in hex
 #                stdout: a secp256k1 key pair in hex in YAML
-#    address   Derive an Ethereum address from a secp256k1 public key
-#                stdin: a secp256k1 public key in hex
-#                stdout: an Ethereum address in hex
 
 # OPTIONS:
 #    --help, -h  show help
@@ -192,7 +168,7 @@ provided secp256k1 private key from the initial key generation. Note, that the
 derived public key is equal to the originally generated public key.
 #+BEGIN_SRC nushell
 $env.PATH = $env.PATH | prepend ("." | path expand)
-let key = wallet key generate | from yaml
+let key = wallet eckey generate | from yaml
 print $key
 # ╭──────┬────────────────────────────────────────────────────────────────────────────────────╮
 # │ prv  │ 31580adc76247ea9aa72695f93efd627c3ad7ccc3e9fca6bfaaa24c70f822afe                   │
@@ -200,7 +176,7 @@ print $key
 # │      │ d68ae18913007bac7b53ff1952c5f0d70dcdcd6afed8e0b6                                   │
 # │ pubc │ 02c0eb637fe1ac067560860697e929a78fd2d743c642b7c601535cacc1ec1708e8                 │
 # ╰──────┴────────────────────────────────────────────────────────────────────────────────────╯
-let pub = $key.prv | wallet key derive | from yaml
+let pub = $key.prv | wallet eckey derive | from yaml
 print $pub
 # ╭──────┬────────────────────────────────────────────────────────────────────────────────────╮
 # │ prv  │ 31580adc76247ea9aa72695f93efd627c3ad7ccc3e9fca6bfaaa24c70f822afe                   │
@@ -208,25 +184,4 @@ print $pub
 # │      │ d68ae18913007bac7b53ff1952c5f0d70dcdcd6afed8e0b6                                   │
 # │ pubc │ 02c0eb637fe1ac067560860697e929a78fd2d743c642b7c601535cacc1ec1708e8                 │
 # ╰──────┴────────────────────────────────────────────────────────────────────────────────────╯
-#+END_SRC
-
-Take a random secp256k1 private key by keccak256 hashing 32 bytes from the
-~/dev/urandom~ CSPRNG. Derive a secp256k1 public key from the private key.
-Compute an Ethereum address from the derived public key
-#+BEGIN_SRC nushell
-$env.PATH = $env.PATH | prepend ("." | path expand)
-let prv = open /dev/urandom | first 32 | wallet keccak256
-print $prv
-# 990c880b9accae50cfd0d928241a80b1afe49b973bea3f92c4253a10cc6321c3
-let pub = $prv | wallet key derive | from yaml
-print $pub
-# ╭──────┬────────────────────────────────────────────────────────────────────────────────────╮
-# │ prv  │ 990c880b9accae50cfd0d928241a80b1afe49b973bea3f92c4253a10cc6321c3                   │
-# │ pub  │ 04e3694448ca68cc998fb5dddd75af00b703cbe60434b9cde5a1973dc3c212f61bd63b3bfad457ec11 │
-# │      │ 04fb42894714fa1848a603fc85bec06ee87dabc5389c95cb                                   │
-# │ pubc │ 03e3694448ca68cc998fb5dddd75af00b703cbe60434b9cde5a1973dc3c212f61b                 │
-# ╰──────┴────────────────────────────────────────────────────────────────────────────────────╯
-let addr = $pub.pub | wallet key address
-print $addr
-# e207496548c4409addd7ec1061dab0c6bcd2ee42
 #+END_SRC
