@@ -13,9 +13,7 @@ func KeyCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "key",
     Usage: "Generate a secp256k1 key pair, sign a transaction, verify a signature",
-    Commands: []*cli.Command{
-      keyGenerateCmd(), keyDeriveCmd(), keyAddressCmd(),
-    },
+    Commands: []*cli.Command{keyGenerateCmd(), keyDeriveCmd()},
   }
   return cmd
 }
@@ -51,26 +49,6 @@ func keyDeriveCmd() *cli.Command {
       }
       key := KeyDerive(prv)
       fmt.Printf("%s\n", key.YAMLEncode())
-      return nil
-    },
-  }
-  return cmd
-}
-
-func keyAddressCmd() *cli.Command {
-  cmd := &cli.Command{
-    Name: "address",
-    Usage: `Derive an Ethereum address from a secp256k1 public key
-  stdin: a secp256k1 public key in hex
-  stdout: an Ethereum address in hex`,
-    Action: func(ctx context.Context, cmd *cli.Command) error {
-      var pub []byte
-      _, err := fmt.Scanf("%x", &pub)
-      if err != nil {
-        return err
-      }
-      addr := KeyAddress(pub)
-      fmt.Printf("%x\n", addr)
       return nil
     },
   }
@@ -139,9 +117,32 @@ func keyAddressCmd() *cli.Command {
 func AddressCmd() *cli.Command {
   cmd := &cli.Command{
     Name: "address",
-    Usage: "Encode and verify an Ethereum address (ERC-55)",
+    Usage: "Derive, encode and verify an Ethereum address (ERC-55)",
     Commands: []*cli.Command{
-      addressEncodeCmd(), addressVerifyCmd(),
+      addressDeriveCmd(), addressEncodeCmd(), addressVerifyCmd(),
+    },
+  }
+  return cmd
+}
+
+func addressDeriveCmd() *cli.Command {
+  cmd := &cli.Command{
+    Name: "derive",
+    Usage: `Derive an Ethereum address from a secp256k1 public key
+  stdin: a secp256k1 public key either compressed or uncompressed in hex
+  stdout: an Ethereum address in hex`,
+    Action: func(ctx context.Context, cmd *cli.Command) error {
+      var pub []byte
+      _, err := fmt.Scanf("%x", &pub)
+      if err != nil {
+        return err
+      }
+      addr, err := AddressDerive(pub)
+      if err != nil {
+        return err
+      }
+      fmt.Printf("%x\n", addr)
+      return nil
     },
   }
   return cmd

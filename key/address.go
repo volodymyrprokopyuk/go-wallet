@@ -6,8 +6,23 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/dustinxie/ecc"
 	"github.com/volodymyrprokopyuk/go-wallet/crypto"
 )
+
+func AddressDerive(pub []byte) ([]byte, error) {
+  switch {
+  case len(pub) == 65 && pub[0] == 0x04:
+  case len(pub) == 33 && (pub[0] == 0x02 || pub[0] == 0x03):
+    pubx, puby := ecc.UnmarshalCompressed(ecc.P256k1(), pub)
+    pub = NewPubKey(pubx, puby).Pub
+  default:
+    return nil, fmt.Errorf("address derive: invalid public key: %x", pub)
+  }
+  hash := crypto.Keccak256(pub[1:])
+  addr := hash[12:]
+  return addr, nil
+}
 
 func AddressEncode(addr []byte) string {
   hexAddr := fmt.Sprintf("%x", addr)

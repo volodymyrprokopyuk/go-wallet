@@ -8,14 +8,14 @@
 
 *** Secp256k1 keys and signatures
 
-- [[/key/secp256k1key-generation.org][Secp256k1 key generation]]
+- [[/key/secp256k1.org][Secp256k1 keys and signatures]]
 
 *** HD wallet
 
-- [[/key/mnemonic-generation.org][BIP-39 Memonic generation]]
+- [[/key/mnemonic.org][BIP-39 Mnemonic generation]]
 - [[/key/hdwallet.org][BIP-32 Hierarchical deterministic wallet]]
 
 *** Encoding
 
-- [[/key/address-encoding.org][ERC-55 Ethereum address encoding]]
-- [[/crypto/base58-encoding.org][Base58 and base58check encoding]]
+- [[/key/address.org][ERC-55 Ethereum address encoding]]
+- [[/crypto/base58.org][Base58 and base58check encoding]]

@@ -29,7 +29,7 @@ def "test key derive" [] {
   assert equal $key $exp
 }
 
-def "test key address" [] {
+def "test address derive" [] {
   let cases = [[prv, exp];
     ["c8aee432ef2035adc6f71a7094c0677eedf74a04f4e17227fa1a4155ad511047",
      "9cea81b9d2e900d6027125378ee2ddfa15feeed1"],
@@ -38,8 +38,10 @@ def "test key address" [] {
   ]
   $cases | each {|c|
     let key = $c.prv | wallet key derive | from yaml
-    let addr = $key.pub | wallet key address
+    let addr = $key.pub | wallet address derive
     assert equal $addr $c.exp
+    let addr2 = $key.pubc | wallet address derive
+    assert equal $addr2 $addr
   }
 }
 
@@ -287,8 +289,8 @@ def "test hd path public" [] {
 
 test key generate
 test key derive
-test key address
 
+test address derive
 test address encode
 test address verify
 

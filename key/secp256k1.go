@@ -8,7 +8,6 @@ import (
 	"math/big"
 
 	"github.com/dustinxie/ecc"
-	"github.com/volodymyrprokopyuk/go-wallet/crypto"
 )
 
 type PubKey struct {
@@ -106,12 +105,6 @@ func KeyDerive(prv []byte) *PrvKey {
   k.PublicKey.X, k.PublicKey.Y = k.PublicKey.ScalarBaseMult(k.D.Bytes())
   key := NewPrvKey(k.D, k.X, k.Y)
   return key
-}
-
-func KeyAddress(pub []byte) []byte {
-  hash := crypto.Keccak256(pub[1:])
-  addr := hash[12:]
-  return addr
 }
 
 // func sign(key string, hash []byte) ([]byte, error) {

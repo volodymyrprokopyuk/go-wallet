@@ -24,7 +24,7 @@
   - [[#extended-key-encode][Extended key encode]]
   - [[#extended-key-decode][Extended key decode]]
 - [[#testing-and-usage][Testing and usage]]
-  - [[#testing-all-hd-wallet-cli-commands][Testing all HD wallet CLI commands]]
+  - [[#testing-all-hd--cli-commands][Testing all hd * CLI commands]]
   - [[#using-hd-seed-and-hd-master-private-hardened-public-cli-commands][Using hd seed and hd master private hardened public CLI commands]]
   - [[#using-hd-path-cli-commands][Using hd path CLI commands]]
   - [[#using-hd-decode-cli-commands][Using hd decode CLI commands]]
@@ -625,7 +625,7 @@ func EkeyDecode(str string) (*ExtKey, error) {
 
 ** Testing and usage
 
-*** Testing all HD wallet CLI commands
+*** Testing all =hd *= CLI commands
 
 #+BEGIN_SRC nushell
 go build -o wallet; ./key/cli-test.nu
