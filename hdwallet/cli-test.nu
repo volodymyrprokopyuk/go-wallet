@@ -29,6 +29,21 @@ def "test eckey derive" [] {
   assert equal $key $exp
 }
 
+def "test ecdsa sign verify recover" [] {
+  let key = wallet eckey generate | from yaml
+  let hash = "message" | wallet keccak256
+  let sig = $hash | wallet ecdsa sign --prv $key.prv
+  let valid = $hash | wallet ecdsa verify --sig $sig --pub $key.pub | into bool
+  assert equal $valid true
+  let valid2 = $hash | wallet ecdsa verify --sig $sig --pub $key.pubc | into bool
+  assert equal $valid2 true
+  let inv = $sig | str replace "0" "1"
+  let valid3 = $hash | wallet ecdsa verify --sig $inv --pub $key.pub | into bool
+  assert equal $valid3 false
+  let pub = $hash | wallet ecdsa recover --sig $sig | from yaml
+  assert equal $pub ($key | select pub pubc)
+}
+
 def "test address derive" [] {
   let cases = [[prv, exp];
     ["c8aee432ef2035adc6f71a7094c0677eedf74a04f4e17227fa1a4155ad511047",
@@ -287,42 +302,24 @@ def "test hd path public" [] {
   }
 }
 
-# test eckey generate
-# test eckey derive
+test eckey generate
+test eckey derive
+test ecdsa sign verify recover
 
-# test address derive
-# test address encode
-# test address verify
+test address derive
+test address encode
+test address verify
 
-# test mnemonic generate
-# test mnemonic derive
-# test mnemonic verify
+test mnemonic generate
+test mnemonic derive
+test mnemonic verify
 
-# test hd seed
-# test hd master
-# test hd private decode
-# test hd hardened
-# test hd public
-# test hd path private
-# test hd path public
+test hd seed
+test hd master
+test hd private decode
+test hd hardened
+test hd public
+test hd path private
+test hd path public
 
-# print success
-
-
-let key = wallet eckey generate | from yaml
-print $key
-# let hash = "message" | wallet keccak256
-let hash = "message" | wallet sha256
-# let sig = cast wallet sign --private-key $key.prv --no-hash $hash
-let sig = cast wallet sign --private-key $key.prv --data $hash
-print $sig
-let addr = $key.pub | wallet address derive
-let valid = cast wallet verify --address $addr "message" $sig
-print $valid
-
-# let sig2 = $hash | wallet ecdsa sign --prv $key.prv
-# print $sig2
-# let valid2 = $hash | wallet ecdsa verify --sig $sig2 --pub $key.pub | into bool
-# print $valid2
-# let pub2 = $hash | wallet ecdsa recover --sig $sig2 | from yaml
-# print $pub2
+print success

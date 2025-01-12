@@ -1,4 +1,4 @@
-* Secp256k1 key generation
+* Secp256k1 keys and ECDSA signatures
 :PROPERTIES:
 :TOC: :include descendants
 :END:
@@ -7,14 +7,21 @@
 - [[#concepts-and-purpose][Concepts and purpose]]
   - [[#secp256k1-private-key][secp256k1 private key]]
   - [[#secp256k1-public-key][secp256k1 public key]]
+  - [[#ecdsa-signing-a-message][ECDSA signing a message]]
+  - [[#ecdsa-verifying-a-signature][ECDSA verifying a signature]]
+  - [[#ecdsa-recovering-a-public-key][ECDSA recovering a public key]]
 - [[#design-and-implementation][Design and implementation]]
   - [[#pubkey-type][PubKey type]]
   - [[#prvkey-type][PrvKey type]]
-  - [[#generate-secp256k1-key-pair][Generate secp256k1 key pair]]
-  - [[#derive-secp256k1-public-key-from-private-key][Derive secp256k1 public key from private key]]
+  - [[#secp256k1-key-generate][Secp256k1 key generate]]
+  - [[#secp256k1-key-derive][Secp256k1 key derive]]
+  - [[#ecdsa-sign][ECDSA sign]]
+  - [[#ecdsa-verify][ECDSA verify]]
+  - [[#ecdsa-recover][ECDSA recover]]
 - [[#testing-and-usage][Testing and usage]]
-  - [[#testing-eckey-generate-and-eckey-derive-cli-commands][Testing eckey generate and eckey derive CLI commands]]
-  - [[#using-eckey-generate-eckey-derive-cli-commands][Using eckey generate, eckey derive CLI commands]]
+  - [[#testing-all-eckey--and-ecdsa--cli-commands][Testing all eckey * and ecdsa * CLI commands]]
+  - [[#using-eckey-generate-and-eckey-derive-cli-commands][Using eckey generate and eckey derive CLI commands]]
+  - [[#using-ecdsa-sign-ecdsa-verify-and-ecdsa-recover-cli-commands][Using ecdsa sign, ecdsa verify, and ecdsa recover CLI commands]]
 :END:
 
 ** Concepts and purpose
@@ -48,6 +55,12 @@
     =0x02= prefix if the =y= coordinate is even or =0x03= prefix if the =y=
     coordinate is odd. The y coordinate can be unambiguously derived from the x
     coordinate and the parity prefix
+
+*** ECDSA signing a message
+
+*** ECDSA verifying a signature
+
+*** ECDSA recovering a public key
 
 ** Design and implementation
 
@@ -98,12 +111,12 @@ func NewPrvKey(prvd, pubx, puby *big.Int) *PrvKey {
 }
   #+END_SRC
 
-*** Generate secp256k1 key pair
+*** Secp256k1 key generate
 
-- Secp256k1 key pair generation :: The =KeyGenerate= function generates a
-  secp256k1 private key represented by a random large integer =d= and the
-  corresponding secp256k1 public key represented by the coordinates ~(x, y)~ of
-  the point on the secp256k1 elliptic curve
+- Secp256k1 key generate :: The =KeyGenerate= function generates a secp256k1
+  private key represented by a random large integer =d= and the corresponding
+  secp256k1 public key represented by the coordinates ~(x, y)~ of the point on
+  the secp256k1 elliptic curve
   #+BEGIN_SRC go
 func KeyGenerate() (*PrvKey, error)  {
   k, err := ecdsa.GenerateKey(ecc.P256k1(), rand.Reader)
@@ -115,14 +128,14 @@ func KeyGenerate() (*PrvKey, error)  {
 }
   #+END_SRC
 
-*** Derive secp256k1 public key from private key
+*** Secp256k1 key derive
 
-- Secp256k1 public key derivation :: The =KeyDerive= function derives a
-  secp256k1 public key represented by the coordinates ~(x, y)~ of the point on
-  the secp256k1 elliptic curve from an externally provided secp256k1 private key
-  represented by a random large integer =d=. The coordinate =x= and =y= of the
-  public key are derived through the multiplication of the random large integer
-  =d= by the constant generator point =G=
+- Secp256k1 key derive :: The =KeyDerive= function derives a secp256k1 public
+  key represented by the coordinates ~(x, y)~ of the point on the secp256k1
+  elliptic curve from an externally provided secp256k1 private key represented
+  by a random large integer =d=. The coordinate =x= and =y= of the public key
+  are derived through the multiplication of the random large integer =d= by the
+  constant generator point =G=
   #+BEGIN_SRC go
 func KeyDerive(prv []byte) *PrvKey {
   k := &ecdsa.PrivateKey{D: new(big.Int).SetBytes(prv)}
@@ -133,15 +146,27 @@ func KeyDerive(prv []byte) *PrvKey {
 }
   #+END_SRC
 
+*** ECDSA sign
+
+- ECDSA sign ::
+
+*** ECDSA verify
+
+- ECDSA verify ::
+
+*** ECDSA recover
+
+- ECDSA recover ::
+
 ** Testing and usage
 
-*** Testing =eckey generate= and =eckey derive= CLI commands
+*** Testing all =eckey *= and =ecdsa *= CLI commands
 
 #+BEGIN_SRC nushell
 go build -o wallet; ./key/cli-test.nu
 #+END_SRC
 
-*** Using =eckey generate=, =eckey derive= CLI commands
+*** Using =eckey generate= and =eckey derive= CLI commands
 
 Show the help and usage instructions of the =wallet eckey= command
 #+BEGIN_SRC nushell
@@ -184,4 +209,30 @@ print $pub
 # │      │ d68ae18913007bac7b53ff1952c5f0d70dcdcd6afed8e0b6                                   │
 # │ pubc │ 02c0eb637fe1ac067560860697e929a78fd2d743c642b7c601535cacc1ec1708e8                 │
 # ╰──────┴────────────────────────────────────────────────────────────────────────────────────╯
+#+END_SRC
+
+*** Using =ecdsa sign=, =ecdsa verify=, and =ecdsa recover= CLI commands
+
+Show the help and usage instructions of the =wallet ecdsa= command
+#+BEGIN_SRC nushell
+./wallet ecdsa
+# NAME:
+#    wallet ecdsa - Sign a hash using the ECDSA. Verify a signature. Recover a public key
+
+# USAGE:
+#    wallet ecdsa [command [command options]]
+
+# COMMANDS:
+#    sign     Sign a hash using the ECDSA over the secp256k1 elliptic curve
+#               stdin: a hash in hex
+#               stdout: a signature of the hash in hex
+#    verify   Verify a signature using the ECDSA over the secp256k1 elliptic curve
+#               stdin: a hash in hex
+#               stdout: true if the signature is valid, false otherwise
+#    recover  Recover a public key from a hash and its ECDSA signature
+#               stdin: a hash in hex
+#               stdout: a public key in hex in YAML
+
+# OPTIONS:
+#    --help, -h  show help
 #+END_SRC

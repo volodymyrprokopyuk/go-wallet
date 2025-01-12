@@ -123,7 +123,12 @@ func ecdsaVerifyCmd() *cli.Command {
       if err != nil {
         return err
       }
-      valid := ECDSAVerify(hash, sig, pub)
+      valid := true
+      err = ECDSAVerify(hash, sig, pub)
+      if err != nil {
+        fmt.Fprintf(os.Stderr, "%s\n", err)
+        valid = false
+      }
       fmt.Printf("%t\n", valid)
       return nil
     },

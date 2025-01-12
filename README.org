@@ -8,7 +8,7 @@
 
 *** Secp256k1 keys and signatures
 
-- [[/key/secp256k1.org][Secp256k1 keys and signatures]]
+- [[/key/secp256k1.org][Secp256k1 keys and ECDSA signatures]]
 
 *** HD wallet
 

@@ -119,14 +119,23 @@ func ECDSASign(hash, prv []byte) ([]byte, error) {
   return ecc.SignBytes(k, hash, ecc.LowerS | ecc.RecID)
 }
 
-func ECDSAVerify(hash, sig, pub []byte) bool {
-  k := &ecdsa.PublicKey{
-    Curve: ecc.P256k1(),
-    X: new(big.Int).SetBytes(pub[1:33]),
-    Y: new(big.Int).SetBytes(pub[33:]),
+func ECDSAVerify(hash, sig, pub []byte) error {
+  var pubx, puby *big.Int
+  switch {
+  case len(pub) == 65 && pub[0] == 0x04: // Uncompressed public key
+    pubx = new(big.Int).SetBytes(pub[1:33])
+    puby = new(big.Int).SetBytes(pub[33:])
+  case len(pub) == 33 && (pub[0] == 0x02 || pub[0] == 0x03): // Compressed public key
+    pubx, puby = ecc.UnmarshalCompressed(ecc.P256k1(), pub)
+  default:
+    return fmt.Errorf("ECDSA verify: invalid public key %x", pub)
   }
+  k := &ecdsa.PublicKey{Curve: ecc.P256k1(), X: pubx, Y: puby,}
   valid := ecc.VerifyBytes(k, hash, sig, ecc.LowerS | ecc.RecID)
-  return valid
+  if !valid {
+    return fmt.Errorf("ECDSA verify: invalid signature")
+  }
+  return nil
 }
 
 func ECDSARecover(hash, sig []byte) (*PubKey, error) {
