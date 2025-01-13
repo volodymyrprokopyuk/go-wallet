@@ -56,11 +56,70 @@
     coordinate is odd. The y coordinate can be unambiguously derived from the x
     coordinate and the parity prefix
 
-*** ECDSA signing a message
+*** ECDSA transaction signature
 
-*** ECDSA verifying a signature
+- ECDSA transaction signature :: An ECDSA transaction signature ensures the
+  authenticity of a sender, the integrity of a transaction, and the
+  non-repudiation of the transaction authorization. The authenticity of a sender
+  means that a valid signature could have been produced only by the holder of
+  the private key. The integrity of a transaction ensures that the content of a
+  transaction with a valid signature have not been modified. The non-repudiation
+  of transaction authorization proves the undeniable fact that a transaction
+  with a valid signature certainly have been produced only by the holder of the
+  private key. An ECDSA signature of a transaction takes a hash of the message
+  and a private key of the signed, and produces a signature. The validity of a
+  signature can be verified using the same hash of the message, the signature,
+  and the public verifying key derived from the private signing key. A signature
+  along with the hash of the message can be used to recover the public verifying
+  key derived from the private signing key
 
-*** ECDSA recovering a public key
+*** ECDSA signature verification
+
+- ECDSA signature verification :: The ECDSA signature verification proves the
+  authenticity of a sender, the integrity of a signed transaction, and the
+  non-repudiation of the transaction authorization. The ECDSA signature
+  verification takes a hash of the transaction, a signature of the transaction,
+  and a verifying public key, and returns a boolean value that indicates whether
+  a valid is valid or not. If the signature is valid, the authenticity of the
+  sender, the integrity of the transaction, and the non-repudiation of the
+  transaction authorization are confirmed. If the signature is invalid, than
+  either the sender have not signed the transaction, or the transaction has been
+  modified, or the signature is corrupted
+
+*** ECDSA public key recovery
+
+- ECDSA public key recovery :: An ECDSA signature along with a hash of a
+  transaction allows to recover the public verifying key derived from the
+  private signing key that have been used to produce the signature. This feature
+  is very useful as it allows to reduce transaction size by omitting the sender
+  originating address from the transaction payload, and provide only the
+  transaction signature in the transaction payload. In order to recover the
+  sender public key and derive the sender address, the transaction content is
+  hashed and passed along with the transaction signature to the ECDSA public key
+  recovery function, that, in turn, returns the public verifying key of the
+  sender
+
+*** ECDSA vs Schnorr signatures
+
+- Schnorr signature characteristics ::
+  - Simpler and more efficient than the ECDSA
+  - Linearity allows multiple parties to cooperate in multi signature schemes
+    without sharing their secrets. Linearity allows verifying multiple
+    signatures at once in less time than the one by one verification. Linearity
+    of an operation requires that ~f(a + b) = f(a) + f(b)~ and ~f(a x b) = a x
+    f(b)~
+  - Provable security due to the simplicity of the signing scheme. The proof of
+    security of the Schnorr signature depends only on the difficulty of solving
+    the discrete logarithm problem DLP and the ability of a hash function to
+    produce unpredictable values (random oracle)
+  - Patent expired in 2010
+  - Used in Bitcoin for transaction signature after the Taproot update
+- ECDSA signature characteristics ::
+  - More complex and less efficient than the Schnorr signature
+  - No linearity
+  - Less provable security due to the complexity of the signing scheme
+  - Open standard widely implemented in cryptoraphic libraries
+  - Used in Ethereum and Bitcoin
 
 ** Design and implementation
 
@@ -148,15 +207,63 @@ func KeyDerive(prv []byte) *PrvKey {
 
 *** ECDSA sign
 
-- ECDSA sign ::
+- ECDSA sign :: The =ECDSASign= function takes a hash of a transaction and a
+  private signing key and produces a ECDSA signature
+  #+BEGIN_SRC go
+func ECDSASign(hash, prv []byte) ([]byte, error) {
+  if len(hash) != 32 {
+    return nil, fmt.Errorf("ECDSA sign: invalid hash length: %d", len(hash))
+  }
+  if len(prv) != 32 {
+    return nil, fmt.Errorf("ECDSA sign: invalid private key length: %d", len(prv))
+  }
+  k := &ecdsa.PrivateKey{D: new(big.Int).SetBytes(prv)}
+  k.PublicKey.Curve = ecc.P256k1()
+  return ecc.SignBytes(k, hash, ecc.LowerS | ecc.RecID)
+}
+  #+END_SRC
 
 *** ECDSA verify
 
-- ECDSA verify ::
+- ECDSA verify :: The =ECDSAVerify= function takes a hash of a transaction, a
+  signature of a transaction, and a public verifying key, and returns true if
+  the signature is valid, or false otherwise
+  #+BEGIN_SRC go
+func ECDSAVerify(hash, sig, pub []byte) error {
+  var pubx, puby *big.Int
+  switch {
+  case len(pub) == 65 && pub[0] == 0x04: // Uncompressed public key
+    pubx = new(big.Int).SetBytes(pub[1:33])
+    puby = new(big.Int).SetBytes(pub[33:])
+  case len(pub) == 33 && (pub[0] == 0x02 || pub[0] == 0x03): // Compressed public key
+    pubx, puby = ecc.UnmarshalCompressed(ecc.P256k1(), pub)
+  default:
+    return fmt.Errorf("ECDSA verify: invalid public key %x", pub)
+  }
+  k := &ecdsa.PublicKey{Curve: ecc.P256k1(), X: pubx, Y: puby,}
+  valid := ecc.VerifyBytes(k, hash, sig, ecc.LowerS | ecc.RecID)
+  if !valid {
+    return fmt.Errorf("ECDSA verify: invalid signature")
+  }
+  return nil
+}
+  #+END_SRC
 
 *** ECDSA recover
 
-- ECDSA recover ::
+- ECDSA recover :: The =ECDSARecover= takes a hash of a transaction and a
+  signature of a transaction, and recovers a public verifying key derived from
+  the private signing key that has been used to produce the signature
+  #+BEGIN_SRC go
+func ECDSARecover(hash, sig []byte) (*PubKey, error) {
+  k, err := ecc.RecoverPubkey("P-256k1", hash, sig)
+  if err != nil {
+    return nil, err
+  }
+  pub := NewPubKey(k.X, k.Y)
+  return pub, nil
+}
+  #+END_SRC
 
 ** Testing and usage
 
@@ -235,4 +342,53 @@ Show the help and usage instructions of the =wallet ecdsa= command
 
 # OPTIONS:
 #    --help, -h  show help
+#+END_SRC
+
+Generate a secp256k1 key pair. Keccak256 hash a "transaction" to sign. Sign the
+transaction hash. Verify the signature and confirm that the signature is valid.
+Both an uncompressed or compressed public verifying keys are supported
+#+BEGIN_SRC nushell
+let key = wallet eckey generate | from yaml
+print $key
+# ╭──────┬────────────────────────────────────────────────────────────────────────────────────╮
+# │ prv  │ b6294ae80064134f8f3ae004f0c16c8a667846622a3e899d707a715d75179b66                   │
+# │ pub  │ 04f33c335b33ef8ea5b18c8710c535cdf463d52f03f5345539dae68c70e78ac17350bc1b742e9d55c0 │
+# │      │ aef21e978538078acc6af765171507bf8580007bcca5bc42                                   │
+# │ pubc │ 02f33c335b33ef8ea5b18c8710c535cdf463d52f03f5345539dae68c70e78ac173                 │
+# ╰──────┴────────────────────────────────────────────────────────────────────────────────────╯
+let hash = "transaction" | wallet keccak256
+print $hash
+# bb2a99297e1d12a9b91d4f90d5dd4b160d93c84a9e3b4daa916fec14ec852e05
+let sig = $hash | wallet ecdsa sign --prv $key.prv
+print $sig
+# a01d81f62138a2215375f14222b7cec685ce15d3a7d93a55e6a5625c1291c9b718350af795f75a99744c8d3660836eed5f235f07553426e2afd92523532a318e01
+let valid = $hash | wallet ecdsa verify --sig $sig --pub $key.pub | into bool
+print $valid
+# true
+#+END_SRC
+
+Keccak256 hash a capitalized "Transaction". Try verifying the new hash against
+the original signature and confirm that the signature is invalid as the
+transaction has been modified
+#+BEGIN_SRC nushell
+let hash2 = "Transaction" | wallet keccak256
+print $hash2
+# 59d48e091a087959eff992af21f41b1eda5f677c13ea711af9726339ae78378a
+let invalid = $hash2 | wallet ecdsa verify --sig $sig --pub $key.pubc | into bool
+print $invalid
+# ECDSA verify: invalid signature
+# false
+#+END_SRC
+
+Recover the public verifying key from the transaction hash, and the transaction
+signature. Confirm that the recovered public key is equal the the originally
+generated public key
+#+BEGIN_SRC nushell
+let pub = $hash | wallet ecdsa recover --sig $sig | from yaml
+print $pub
+# ╭──────┬────────────────────────────────────────────────────────────────────────────────────╮
+# │ pub  │ 04f33c335b33ef8ea5b18c8710c535cdf463d52f03f5345539dae68c70e78ac17350bc1b742e9d55c0 │
+# │      │ aef21e978538078acc6af765171507bf8580007bcca5bc42                                   │
+# │ pubc │ 02f33c335b33ef8ea5b18c8710c535cdf463d52f03f5345539dae68c70e78ac173                 │
+# ╰──────┴────────────────────────────────────────────────────────────────────────────────────╯
 #+END_SRC
