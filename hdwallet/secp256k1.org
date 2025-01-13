@@ -270,7 +270,7 @@ func ECDSARecover(hash, sig []byte) (*PubKey, error) {
 *** Testing all =eckey *= and =ecdsa *= CLI commands
 
 #+BEGIN_SRC nushell
-go build -o wallet; ./key/cli-test.nu
+go build -o wallet; ./hdwallet/cli-test.nu
 #+END_SRC
 
 *** Using =eckey generate= and =eckey derive= CLI commands

@@ -1,4 +1,4 @@
-* BIP-39 Mnemonic generation
+* BIP-39 Mnemonic for HD wallet
 :PROPERTIES:
 :TOC: :include descendants
 :END:
@@ -24,23 +24,24 @@
 
 - Mnemonic :: A mnemonic is a sequence of 12 to 24 well-known words from a
   pre-defined dictionary of 2048 words, that encodes a random sequence of bytes
-  received from a cryptographically secure pseudo-random number generator
-  CSPRNG. A mnemonic encodes 128, 160, 192, 224, 256 bits of entropy in a form
-  that is easily managed by humans e.g. write a mnemonic on a piece of paper,
-  copy a mnemonic from a visual source, communicate a mnemonic with voice. It is
-  easy to mistype a random sequence of bytes, while it is much harder to mistype
-  a sequence of 12 to 24 well-known words. A mnemonic has en error detecting
-  checksum that allows to reject a mistype mnemonic. A mnemonic along with an
-  optional passphrase is used to derive a seed for a hierarchical deterministic
-  HD wallet. A HD wallet uses a single seed to deterministically derive an
-  infinite hierarchy of secp256k1 private and public keys. A mnemonic allows to
-  backup, export, or import a HD wallet by only storing a sequence of 12 to 24
-  well-known words
+  called the entropy received from a cryptographically secure pseudo-random
+  number generator CSPRNG. A mnemonic encodes 128, 160, 192, 224, or 256 bits of
+  entropy from a CSPRNG in a form that is easily managed by humans e.g. write a
+  mnemonic on a piece of paper, copy a mnemonic from a visual source,
+  communicate a mnemonic with voice. It is easy to mistype a large random
+  sequence of bytes, while it is much harder to mistype a sequence of 12 to 24
+  well-known words. A mnemonic has en error detecting checksum that rejects a
+  mistype mnemonic with errors. A mnemonic along with an optional passphrase is
+  used to derive a 512 bits seed for a hierarchical deterministic HD wallet. A
+  HD wallet uses a single seed to deterministically derive an infinite hierarchy
+  of secp256k1 private and public keys. A mnemonic allows to backup, export, or
+  import an entire HD wallet with the whole hierarchy of derived keys by only
+  storing once the mnemonic
 
 *** Mnemonic verification
 
-- Mnemonic verification :: The mnemonic verification process allows to detect
-  and reject a mistype mnemonic. The mnemonic verification process uses a
+- Mnemonic verification :: The mnemonic verification process detects and rejects
+  a mistype mnemonic with errors. The mnemonic verification process uses a
   checksum incorporated into a mnemonic to detect errors in a sequence of 12 to
   24 words
 
@@ -50,10 +51,10 @@
 
 - Mnemonic generate :: The =MnemonicGenerate= function takes an entropy length
   in bits from a pre-defined set of supported lengths, generates a random
-  sequence of bytes of the requested length, and encodes the random sequence of
-  bytes into a mnemonic. The mnemonic generate function
+  sequence of bytes of the requested length from a CSPRNG, and encodes the
+  random sequence of bytes into a mnemonic. The mnemonic generate function
   - Reject an invalid bit length
-  - Generate a random sequence of bytes of the requested length
+  - Generate a random sequence of bytes of the requested length from a CSPRNG
   - Derive a mnemonic from the generated random sequence of bytes
   #+BEGIN_SRC go
 var rseqLens = []int{128, 160, 192, 224, 256} // In bits
@@ -76,8 +77,15 @@ func MnemonicGenerate(bits int) (string, error) {
 
 - Mnemonic derive :: The =MnemonicDerive= function takes an entropy length in
   bits from a pre-defined set of supported lengths and a random sequence of
-  bytes, and encodes the random sequence of bytes into a mnemonic. The mnemonic
-  derive function
+  bytes, and encodes the random sequence of bytes into a mnemonic.
+| Entropy bits | Checksum bits | Entropy + checksum | Mnemonic words |
+|--------------+---------------+--------------------+----------------|
+|          128 |             4 |                132 |             12 |
+|          160 |             5 |                165 |             15 |
+|          192 |             6 |                198 |             18 |
+|          224 |             7 |                231 |             21 |
+|          256 |             8 |                264 |             24 |
+  The mnemonic derive function
   - Reject an invalid bit length
   - Reject a too short random sequence of bytes
   - Append a checksum to the random sequence of bytes. The checksum is the first
@@ -87,7 +95,7 @@ func MnemonicGenerate(bits int) (string, error) {
     into segments of 11 bits. The mnemonic length in words is
     ~(bits + (bits / 32)) / 11~
   - Map each segment of 11 bits to a well-known word from a pre-defined
-    dictionary of 2048 words
+    dictionary of 2^{11} = 2048 words
   - Combine the mapped words in the order of bit segments into a mnemonic
   #+BEGIN_SRC go
 //go:embed mnemonic-dict.txt
@@ -140,16 +148,16 @@ func MnemonicDerive(bits int, rseq []byte) (string, error) {
   validation error. The mnemonic verify function
   - Split the mnemonic into words
   - Reject an invalid mnemonic length
-  - Convert mnemonic words into indices for the pre-defined dictionary
+  - Convert mnemonic words into word indices from the pre-defined dictionary
   - Reject an invalid mnemonic word
   - Reconstruct the random sequence of bytes with the appended bits of the
-    checksum from the mnemonic words
+    checksum from the mnemonic word indices
   - Separate the random sequence of bytes from the bits of the checksum
   - Compute the checksum by SHA256 hashing the extracted random sequence of
     bytes
   - Mask the extracted checksum and the computed checksum to receive the bits of
     the checksum
-  - Reject an invalid checksum if the extracted and the computed checksum does
+  - Reject an invalid checksum if the extracted and the computed checksums do
     not match
   - Confirm the valid mnemonic
   #+BEGIN_SRC go
@@ -220,7 +228,7 @@ func MnemonicVerify(mnem string) error {
 *** Testing =mnemonic generate=, =menmonic derive=, and =mnemonic verify= CLI commands
 
 #+BEGIN_SRC nushell
-go build -o wallet; ./key/cli-test.nu
+go build -o wallet; ./hdwallet/cli-test.nu
 #+END_SRC
 
 *** Using =mnemonic generate=, =menmonic derive=, and =mnemonic verify= CLI commands
@@ -275,9 +283,10 @@ Generate a random sequence of bytes with 256 bits of entropy. Derive a mnemonic
 of 256 bits of entropy from the generated random sequence of bytes. Verify the
 derived mnemonic. Derive a mnemonic of 128 bits of entropy from the initially
 generated random sequence of bytes. Note, that the 128 bits mnemonic start with
-the same sequence of words except the last word because of the checksum. Try to
-generate a 256 bits mnemonic from a 128 bits random sequence. Confirm that the
-random sequence does not have enough entropy to generate the mnemonic
+the same sequence of words as the initially derived 256 bits mnemonic except the
+last word because of the checksum. Try to generate a 256 bits mnemonic from a
+128 bits random sequence. Confirm that the random sequence does not have enough
+entropy to generate a mnemonic of the requested entropy
 #+BEGIN_SRC nushell
 $env.PATH = $env.PATH | prepend ("." | path expand)
 let rseq = open /dev/urandom | first 32 | wallet keccak256

@@ -12,7 +12,7 @@
 
 *** HD wallet
 
-- [[/key/mnemonic.org][BIP-39 Mnemonic generation]]
+- [[/key/mnemonic.org][BIP-39 Mnemonic for HD wallet]]
 - [[/key/hdwallet.org][BIP-32 Hierarchical deterministic wallet]]
 
 *** Encoding

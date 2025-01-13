@@ -628,7 +628,7 @@ func EkeyDecode(str string) (*ExtKey, error) {
 *** Testing all =hd *= CLI commands
 
 #+BEGIN_SRC nushell
-go build -o wallet; ./key/cli-test.nu
+go build -o wallet; ./hdwallet/cli-test.nu
 #+END_SRC
 
 *** Using =hd seed= and =hd master private hardened public= CLI commands
