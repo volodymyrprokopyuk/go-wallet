@@ -23,7 +23,7 @@ var mnemLens = func() []int { // In words
   return lens
 }()
 
-//go:embed mnemonic-dict.txt
+//go:embed mnemonic.txt
 var nmenDict string
 
 var idxWord = func() []string {
