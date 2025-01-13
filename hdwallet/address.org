@@ -18,12 +18,10 @@
 
 ** Concepts and purpose
 
-
 *** Ethereum address
 
-- Ethereum address :: An Ethereum address ~a = keccak256(K)[12:]~ is the last 20
-  bytes of the Keccak256 hash of the uncompressed public key without the =0x04=
-  prefix
+- Ethereum address :: An Ethereum address is the last 20 bytes of the Keccak256
+  hash of the uncompressed public key without the =0x04= prefix
 
 *** ERC-55 Ethereum address encoding
 
@@ -31,11 +29,12 @@
 
 - ERC-55 Ethereum address encoding :: The ERC-55 Ethereum address encoding is a
   backward-compatible, mixed-case encoding of case-insensitive Ethereum
-  addresses that incorporates a checksum into the now case-sensitive address by
-  changing the capitalization of hex digit letters of an Ethereum address. The
-  address encoding conveys error-detecting information without changing the
-  semantic address value. The address encoding is used to detect errors and
-  protect against mistakes with the 99.986% accuracy
+  addresses that incorporates an error detecting checksum into the now
+  case-sensitive Ethereum address by capitalizing certain hex letters of the
+  Ethereum address. The Ethereum address encoding conveys the error detecting
+  information without changing the semantic value of the address. The Ethereum
+  address encoding is used to detect errors and protect against mistakes with
+  the 99.986% accuracy
 
 ** Design and implementation
 
@@ -65,7 +64,8 @@ func AddressDerive(pub []byte) ([]byte, error) {
 *** Address encode
 
 - Address encode :: The =AddressEncode= function encodes an Ethereum address and
-  incorporates an error detecting checksum. The address encode function
+  incorporates the error detecting checksum into the address without changing
+  the semantic value of the address. The address encode function
   - Convert the address into a lower case hex string
   - Compute the keccak256 hash of the address hex string
   - Convert the keccak256 hash into a lower case hex string
@@ -105,8 +105,9 @@ func AddressEncode(addr []byte) string {
     - Check that each character of the encoded address hex string is in the
       upper case if the hex value of the corresponding character of the hash hex
       string is greater than or equal to 8, and is in the lower case otherwise
-  - Return true if the above conditions are hold for all characters of the
-    encoded address hex string, or false otherwise
+  - Return the invalid checksum error if at least one character of the encoded
+    address does not meet the above conditions, otherwise the encoded address is
+    valid
     #+BEGIN_SRC go
   var reUpper = regexp.MustCompile(`[A-F0-9]`)
   var reLower = regexp.MustCompile(`[a-f0-9]`)
@@ -132,7 +133,7 @@ func AddressEncode(addr []byte) string {
 *** Testing =address derive=, =address encode=, and =address verify= CLI commands
 
 #+BEGIN_SRC nushell
-go build -o wallet; ./key/cli-test.nu
+go build -o wallet; ./hdwallet/cli-test.nu
 #+END_SRC
 
 *** Using =address derive=, =address encode=, and =address verify= CLI commands
@@ -161,10 +162,11 @@ Show the help and usage instructions of the =wallet address= command
 #    --help, -h  show help
 #+END_SRC
 
-Generate a random secp256k1 private key by keccak256 hashing 32 bytes from the
-~/dev/urandom~ CSPRNG. Derive a secp256k1 public key from the private key.
-Compute an Ethereum address from the derived public key both uncompressed and
-compressed forms
+Generate a random secp256k1 private key by keccak256 hashing a sequence of 32
+bytes taken from the ~/dev/urandom~ CSPRNG. Derive a secp256k1 public key from
+the private key. Derive an Ethereum address from the derived public key. Note,
+the that same address is derived from both uncompressed and compressed forms of
+the public key
 #+BEGIN_SRC nushell
 $env.PATH = $env.PATH | prepend ("." | path expand)
 let prv = open /dev/urandom | first 32 | wallet keccak256
@@ -186,13 +188,13 @@ print $addr2
 # 445f86f47591cc2161e5efbb31b708e964cc8c6d
 #+END_SRC
 
-Generate a secp256k1 key pair. Compute the Ethereum address from the public key.
+Generate a secp256k1 key pair. Derive an Ethereum address from the public key.
 Encode the address and incorporate the error detecting checksum. Note, the
 encoded address has some letters capitalized, while the initial address is all
 lower case. Verify the encoded address and confirm that the address is valid and
 does not have errors. Modify the encoded address in order to introduce errors.
-Verify the encoded address with errors and confirm that the validation returns
-the invalid checksum error
+Verify the modified encoded address with errors and confirm that the validation
+returns the invalid checksum error
 #+BEGIN_SRC nushell
 $env.PATH = $env.PATH | prepend ("." | path expand)
 let key = wallet eckey generate | from yaml
