@@ -25,7 +25,8 @@
 
 ** Installation
 
-- Install the Go programming language and the Nushell Linux shell
+- Install the Go programming language and the Nushell Linux shell. The Nushell
+  is used to run test of the =wallet= CLI
 #+BEGIN_SRC nushell
 yay -S go nushell
 #+END_SRC
@@ -47,7 +48,7 @@ go test -v -cover -coverprofile=coverage.cov './...' -run .
 #+BEGIN_SRC nushell
 go tool cover -html=coverage.cov
 #+END_SRC
-- Run the whole test suite of the wallet CLI
+- Run the whole test suite of the =wallet= CLI using Nushell
 #+BEGIN_SRC nushell
 go build -o wallet; ./crypto/cli-test.nu
 go build -o wallet; ./hdwallet/cli-test.nu

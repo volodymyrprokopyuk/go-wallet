@@ -2,7 +2,29 @@
 
 ** Abstract
 
+A guided design and implementation of a HD wallet in Go with a convenient CLI
+for easy experimentation using Nushell (or any other shell). The wallet CLI
+exposes an easy to use and experiment CLI tools to generate BIP-39 mnemonics for
+a HD wallet, derive BIP-32 HD wallet extended private and public keys, encode
+and decode derived keys into different formats e.g. =xprv=, =xpub=. The wallet
+CLI also provides tools to generate secp256k1 key pairs, ESDSA sign transactions
+and verify signatures. The wallet CLI exposes tools to encode and decode data
+using the bsae58 and base58check encoding, as well as encode an Ethereum address
+using the ERC-55 address encoding.
+
+The modular design of the wallet CLI commands and the underlying Go library
+allows for easy composition of cryptographic primitives and standard-defined HD
+wallet operations to be combined in flexible ways, which is invaluable for
+learning and experimentation. The implementation of all HD wallet and other
+cryptographic operations has comprehensive documentation and associated test
+cases for those who want to learn and understand the mechanics and internal
+working of a HD wallet.
+
 ** Related
+
+- [[https://github.com/volodymyrprokopyuk/go-blockchain][Build a blockchain from scratch in Go with gRPC]]
+  /A foundational and practical guide for effectively learning and progressively
+  building a blockchain from scratch in Go with gRPC/
 
 ** Contents
 
@@ -25,6 +47,14 @@
 ** Usage examples
 
 *** Manual derivation of HD wallet keys
+
+Generated a mnemonic of 128 bits of entropy. Derive a 512 bits seed from the
+mnemonic. Derive the extended master private and public keys from the seed.
+Derive a private key of the depth 1 and the index 0 from the extended master
+private key. Derive a public key of the depth 1 and the index 0 from the
+extended master public key. Sign a transaction hash with the private key. Verify
+the transaction signature with the public key. All HD wallet commands are
+executed in Nushell
 
 #+BEGIN_SRC nushell
 let mnem = wallet mnemonic generate --bits 128
@@ -73,6 +103,12 @@ print $valid
 #+END_SRC
 
 *** HD path-based derivation of HD wallet keys
+
+Generated a mnemonic of 128 bits of entropy. Derive a private key specified by
+the =m/1/2/3= HD path from the mnemonic. Derive a public key specified by the
+=M/1/2/3= HD path from the mnemonic. extended master public key. Sign a
+transaction hash with the private key. Verify the transaction signature with the
+public key. All HD wallet commands are executed in Nushell
 
 #+BEGIN_SRC nushell
 let mnem = wallet mnemonic generate --bits 128
