@@ -29,9 +29,11 @@
 #+BEGIN_SRC nushell
 yay -S go nushell
 #+END_SRC
+- Clone and build the wallet CLI
+#+BEGIN_SRC nushell
 git clone https://github.com/volodymyrprokopyuk/go-wallet.git
 cd go-wallet
-go get ./...
+go get './...'
 go build -o wallet
 #+END_SRC
 
@@ -45,6 +47,11 @@ go test -v -cover -coverprofile=coverage.cov './...' -run .
 #+BEGIN_SRC nushell
 go tool cover -html=coverage.cov
 #+END_SRC
+- Run the whole test suite of the wallet CLI
+#+BEGIN_SRC nushell
+go build -o wallet; ./crypto/cli-test.nu
+go build -o wallet; ./hdwallet/cli-test.nu
+#+END_SRC
 
 ** Directory structure
 
@@ -52,17 +59,17 @@ go tool cover -html=coverage.cov
   - =base58.go= defines the base58 and base58check encoding and decoding
   - =cli.go= defines the CLI to the cryptographic primitives and the base58
     encoding
-  - =hash.go= defines the cryptographic primitives e.g. Keccak256, SHA256, HMAC,
-    PBKDF2
+  - =hash.go= defines the cryptographic primitives e.g. Keccak256, SHA256,
+    HMAC-SHA512, PBKDF2-SHA512
   - =shift.go= defines the logical shift left and the logical shift right over a
     slice of bytes
-- =hdwallet/= defines the secp256k1 keys, ECDSA signatures, the BIP-39 mnemonic,
-  the BIP-32 HD wallet, ERC-55 Ethereum address
+- =hdwallet/= defines the secp256k1 keys, the ECDSA signatures, the BIP-39
+  mnemonic, the BIP-32 HD wallet, the ERC-55 Ethereum address encoding
   - =address.go= defines the Ethereum address derivation, ERC-55 Ethereum
     address encoding and verification
-  - =cli.go= defines the CLI to the secp256k1 key pairs, ECDSA signatures, the
-    BIP-39 mnemonic, the BIP-32 HD wallet, ERC-55 Ethereum address
+  - =cli.go= defines the CLI to the secp256k1 key pairs, the ECDSA signatures,
+    the BIP-39 mnemonic, the BIP-32 HD wallet, ERC-55 Ethereum address encoding
   - =hdwallet.go= defines the BIP-32 HD wallet
   - =mnemonic.go= defines the BIP-39 mnemonic
-  - =secp256k1.go= defines the secp256k1 keys, ECDSA signatures
+  - =secp256k1.go= defines the secp256k1 keys and the ECDSA signatures
 - =main.go= defines the main entry point to the =wallet= CLI executable
