@@ -1,0 +1,68 @@
+* Getting started
+:PROPERTIES:
+:TOC: :include descendants
+:END:
+
+:CONTENTS:
+- [[#prerequisites][Prerequisites]]
+- [[#dependencies][Dependencies]]
+- [[#installation][Installation]]
+- [[#testing][Testing]]
+- [[#directory-structure][Directory structure]]
+:END:
+
+** Prerequisites
+
+| Operating system     | Linux Arch | rolling release |
+| Programming language | Go         | v1.23.2         |
+| Linux shell          | Nushell    | v0.101.0        |
+
+** Dependencies
+
+| Keccak256, SHA256, HMAC, PBKDF2 | =golang.org/x/crypto=      | v0.31.0 |
+| Secp256k1 elliptic curve        | =github.com/dustinxie/ecc= | latest  |
+| CLI library                     | =github.com/urfave/cli/v3= | v3.0.0  |
+
+** Installation
+
+- Install the Go programming language and the Nushell Linux shell
+#+BEGIN_SRC nushell
+yay -S go nushell
+#+END_SRC
+git clone https://github.com/volodymyrprokopyuk/go-wallet.git
+cd go-wallet
+go get ./...
+go build -o wallet
+#+END_SRC
+
+** Testing
+
+- Run the whole test suite storing the test coverage to a file
+#+BEGIN_SRC nushell
+go test -v -cover -coverprofile=coverage.cov './...' -run .
+#+END_SRC
+- Show the HTML test coverage report in a browser
+#+BEGIN_SRC nushell
+go tool cover -html=coverage.cov
+#+END_SRC
+
+** Directory structure
+
+- =crypto/= defines the cryptographic primitives and the base58 encoding
+  - =base58.go= defines the base58 and base58check encoding and decoding
+  - =cli.go= defines the CLI to the cryptographic primitives and the base58
+    encoding
+  - =hash.go= defines the cryptographic primitives e.g. Keccak256, SHA256, HMAC,
+    PBKDF2
+  - =shift.go= defines the logical shift left and the logical shift right over a
+    slice of bytes
+- =hdwallet/= defines the secp256k1 keys, ECDSA signatures, the BIP-39 mnemonic,
+  the BIP-32 HD wallet, ERC-55 Ethereum address
+  - =address.go= defines the Ethereum address derivation, ERC-55 Ethereum
+    address encoding and verification
+  - =cli.go= defines the CLI to the secp256k1 key pairs, ECDSA signatures, the
+    BIP-39 mnemonic, the BIP-32 HD wallet, ERC-55 Ethereum address
+  - =hdwallet.go= defines the BIP-32 HD wallet
+  - =mnemonic.go= defines the BIP-39 mnemonic
+  - =secp256k1.go= defines the secp256k1 keys, ECDSA signatures
+- =main.go= defines the main entry point to the =wallet= CLI executable

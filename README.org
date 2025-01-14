@@ -6,18 +6,20 @@
 
 ** Contents
 
+  [[/hdwallet/start.org][Getting started]]
+
 *** Secp256k1 keys and ECDSA signatures
 
-- [[/key/secp256k1.org][Secp256k1 keys and ECDSA signatures]]
+- [[/hdwallet/secp256k1.org][Secp256k1 keys and ECDSA signatures]]
 
 *** HD wallet
 
-- [[/key/mnemonic.org][BIP-39 Mnemonic for HD wallet]]
-- [[/key/hdwallet.org][BIP-32 Hierarchical deterministic wallet]]
+- [[/hdwallet/mnemonic.org][BIP-39 Mnemonic for HD wallet]]
+- [[/hdwallet/hdwallet.org][BIP-32 Hierarchical deterministic wallet]]
 
 *** Encoding
 
-- [[/key/address.org][ERC-55 Ethereum address encoding]]
+- [[/hdwallet/address.org][ERC-55 Ethereum address encoding]]
 - [[/crypto/base58.org][Base58 and base58check encoding]]
 
 ** Usage examples
