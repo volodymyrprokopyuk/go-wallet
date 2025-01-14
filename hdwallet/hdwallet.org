@@ -35,16 +35,16 @@
 *** HD wallet
 
 - HD wallet :: A hierarchical deterministic HD wallet deterministically derives
-  an infinite hierarchy of private and public keys from a single seed of 128 to
-  256 bits of entropy. The seed itself is derived from a mnemonic and en
-  optional passphrase. Only the mnemonic with an optional passphrase is required
-  to backup, export, and import the entire HD wallet with all derived keys. The
-  key derivation process is deterministic, so all hierarchy of private and
-  public keys can be re-derived from the same mnemonic with an optional
-  passphrase. The derived keys are organized in a tree hierarchy with an
-  unlimited depth. Different branches of a tree can be used for selective
-  sharing and different purposes e.g. different accounts, different
-  cryptocurrencies, different accounting purposes.
+  an infinite hierarchy of private and public keys from a single 512 bits seed.
+  The seed itself is derived from a mnemonic and an optional passphrase. Only
+  the mnemonic with an optional passphrase is required to backup, export, and
+  import the entire HD wallet with all derived keys. The key derivation process
+  is deterministic, so the entire hierarchy of private and public keys can be
+  re-derived from the same mnemonic with an optional passphrase at any time. The
+  derived keys are organized in a tree hierarchy with an unlimited depth.
+  Different branches of a tree can be used for selective sharing and different
+  purposes e.g. different accounts, different cryptocurrencies, different
+  accounting purposes.
 - Security of derived keys :: While all private and public keys are derived from
   a single mnemonic with an optional passphrase, all derived keys are as secure
   as independently generated keys. To an external observer all derived keys look
@@ -58,23 +58,23 @@
   non-deterministic wallet. Generating a new receiving address with a new
   spending private key for every transaction is recommended to preserve privacy
   of transactions on a blockchain
-- Derivation of public keys :: Public keys to receive funds can be derived in a
-  less secure environment e.g. web server from an extended public key without
-  having access to the corresponding private extended key to generated
-  respective private keys to spend received funds. Later corresponding private
-  keys can be derived in a more secure environment e.g. hardware wallet to spend
-  received funds
+- Derivation of public keys :: The hierarchy of public keys to receive funds can
+  be derived in a less secure environment e.g. web server from an extended
+  public key without having access to the corresponding private extended key to
+  generated respective private keys to spend received funds. Later,
+  corresponding private keys can be derived in a more secure environment e.g.
+  hardware wallet to spend received funds
 
 *** Seed derivation
 
 - Seed derivation :: A 512 bits (64 bytes) seed used to derive master extended
   private and public keys of a HD wallet is derived from a 128 to 256 bits
-  entropy mnemonic and an optional passphrase. The seed derivation process uses
+  entropy mnemonic with an optional passphrase. The seed derivation process uses
   the PBKDF2-SHA512 key derivation function with 2048 iterations of the
   HMAC-SHA512 message authentication code function. The mnemonic is used as a
   password and the passphrase is used as a salt for the PBKDF2-SHA512 key
-  derivation function. The passphrase, if used, is an additional security
-  factor. A mnemonic is useless without a passphrase. A backup of a passphrase
+  derivation function. The passphrase, if used, is an additional factor of
+  security. A mnemonic is useless without a passphrase. A backup of a passphrase
   should be kept in a different place that a backup of a mnemonic. Different
   passphrases result in a completely different set of derived keys. The salt and
   the high number of HMAC-SHA512 iterations makes brute force attacks and
@@ -84,23 +84,24 @@
 
 - Derivation of extended master keys :: The master extended private and public
   keys are used to derive all other keys in a HD wallet. The master extended
-  private key is used to derive all private keys (and all public keys if needed)
-  in a HD wallet. The master extended public key can be used to derive only all
-  public keys in a HD wallet. The master extended private and public keys are at
-  the depth 0 and at the index 0. A 512 bits seed derived from a mnemonic with
-  an optional passphrase is used as data and a fixed "Bitcoin seed" string is
-  used as a key to the HMAC-SHA512 message authentication code function to
-  produce a 512 bits authenticated hash. The first 32 bytes of the authenticated
-  hash are used as a master private key. The last (next) 32 bytes of the
-  authenticated hash are used as a master chain code needed to derive both child
-  private and public keys. The master chain code prevents others from deriving
-  child private and public keys if they gained access to the corresponding
-  parent private or public key. A master public key is derived from a master
-  private key using the secp256k1 curve multiplication by multiplying the master
-  private key by the generator point of the secp256k1 elliptic curve. A 64 bytes
-  concatenation of a master private key with a master chain code is called a
-  master extended private key. A 64 bytes concatenation of a master public key
-  with the same master chain code is called a master extended public key
+  private key is used to derive all private keys (and all public keys if
+  necessary) in a HD wallet. The master extended public key can be used to
+  derive only all public keys in a HD wallet. The master extended private and
+  public keys are at the depth 0 and at the index 0. A 512 bits seed derived
+  from a mnemonic with an optional passphrase is used as data and a fixed
+  "Bitcoin seed" string is used as a key to the HMAC-SHA512 message
+  authentication code function to produce a 512 bits authenticated hash. The
+  first 32 bytes of the authenticated hash are used as a master private key. The
+  last (next) 32 bytes of the authenticated hash are used as a master chain code
+  needed to derive both child private and child public keys. The master chain
+  code prevents others from deriving child private and child public keys if they
+  gained access to the corresponding parent private or parent public key. A
+  master public key is derived from the master private key using the secp256k1
+  curve multiplication by multiplying the master private key by the generator
+  point of the secp256k1 elliptic curve. A 64 bytes concatenation of the master
+  private key with the master chain code is called the master extended private
+  key. A 64 bytes concatenation of the master public key with the same master
+  chain code is called the master extended public key
 
 *** Derivation of extended private keys
 
@@ -108,10 +109,10 @@
   identified in the tree hierarchy of a HD wallet by a depth that defines the
   parent-child positioning of keys, and by an index that defines the sibling
   positioning between derived keys. A child private key is derived from the
-  corresponding parent extended private key, a depth, and an index of the child
-  private key. The parent extended private key is split into a parent private
-  key and a parent chain code. Then, a parent public key is derived from the
-  parent private key using the secp256k1 multiplication. Next, the HMAC-SHA512
+  parent extended private key, a depth, and an index of the child private key.
+  The parent extended private key is split into a parent private key and a
+  parent chain code. Then, a parent public key is derived from the parent
+  private key using the secp256k1 multiplication. Next, the HMAC-SHA512
   authenticated hash is computed using a concatenation of the compressed parent
   public key and the index of the child private key as data, and the parent
   chain code as a key. The first 32 bytes of the authenticated hash are used to
@@ -130,35 +131,35 @@
   keys are derived using the parent private key prefixed with the =0x00= prefix.
   While the extended parent and public keys use indices between 0 and 2^{31} -
   1, the hardened extended keys use indices between 2^{31} and 2^{32} - 1. A
-  hardened child private key is derived from the corresponding parent extended
-  private key, a depth, and an index of the hardened child private key starting
-  from 2^{31}. The parent extended private key is split into a parent private
-  key and a parent chain code. Next, the HMAC-SHA512 authenticated hash is
-  computed using a concatenation of the parent private key prefixed with the
-  =0x00= prefix and the index of the hardened child private key as data, and the
-  parent chain code as a key. The first 32 bytes of the authenticated hash are
-  used to derive a hardened child private key by adding the parent private key
-  to the first 32 bytes of the authenticated hash. The last (next) 32 bytes of
-  the authenticated hash are used as a child chain code. A 64 bytes
-  concatenation of the hardened child private key with the child chain code is
-  the hardened extended private key. A hardened child public key is derived from
-  the hardened child private key using the secp256k1 multiplication. A 64 bytes
-  concatenation of the hardened child public key with the child chain code is
-  the hardened extended public key
+  hardened child private key is derived from the parent extended private key, a
+  depth, and an index of the hardened child private key starting from 2^{31}.
+  The parent extended private key is split into a parent private key and a
+  parent chain code. Next, the HMAC-SHA512 authenticated hash is computed using
+  a concatenation of the parent private key prefixed with the =0x00= prefix and
+  the index of the hardened child private key as data, and the parent chain code
+  as a key. The first 32 bytes of the authenticated hash are used to derive a
+  hardened child private key by adding the parent private key to the first 32
+  bytes of the authenticated hash. The last (next) 32 bytes of the authenticated
+  hash are used as a child chain code. A 64 bytes concatenation of the hardened
+  child private key with the child chain code is the hardened extended private
+  key. A hardened child public key is derived from the hardened child private
+  key using the secp256k1 multiplication. A 64 bytes concatenation of the
+  hardened child public key with the child chain code is the hardened extended
+  public key
 
 *** Derivation of extended public keys
 
-- Derivation of extended public keys :: A big advantage of the HD wallet key
+- Derivation of extended public keys :: A big advantage of a HD wallet key
   derivation mechanism is that extended public keys needed to receive funds can
-  be derived in a less secure environment e.g. web server without extended
-  private keys needed to spend funds. An child public key is derived from the
-  corresponding parent extended public key, a depth, and an index of the child
-  public key. The parent extended public key is split into a compressed parent
-  public key and a parent chain code. Next, the HMAC-SHA512 authenticated hash
-  is computed using a concatenation of the compressed parent public key and the
-  index of the child public key as data, and the parent chain code as a key. The
-  first 32 bytes of the authenticated hash are used to derive a child public key
-  by adding the parent public key to the first 32 bytes of the authenticated
+  be derived in a less secure environment e.g. web server without the
+  corresponding extended private keys needed to spend funds. An child public key
+  is derived from the parent extended public key, a depth, and an index of the
+  child public key. The parent extended public key is split into a compressed
+  parent public key and a parent chain code. Next, the HMAC-SHA512 authenticated
+  hash is computed using a concatenation of the compressed parent public key and
+  the index of the child public key as data, and the parent chain code as a key.
+  The first 32 bytes of the authenticated hash are used to derive a child public
+  key by adding the parent public key to the first 32 bytes of the authenticated
   hash multiplied by the secp256k1 generator point. The last (next) 32 bytes of
   the authenticated hash are used as a child chain code. A 64 bytes
   concatenation of the child public key with the child chain code is the
@@ -166,43 +167,43 @@
 
 *** Derivation of extended keys defined by HD path
 
-- HD path :: A HD path uniquely defines an extended private or public key in the
-  tree hierarchy of a HD wallet. A HD path starts from either a master private
-  key =m= or a master public key =M= and indicates the derivation path by
-  appending path segments in the form =/index= for the normal derivation or in
-  the form =/index'= for hardened derivation. The indices for hardened
-  derivation start from 2^{31}, so this number is automatically added to the
-  index of a hardened key e.g. =/0'= means 1 + 2^{31}. Each segment in a HD path
-  represents the next level in the tree hierarchy and increments the depth by
-  one
-| Path   | Description                                                         |
-|--------+---------------------------------------------------------------------|
-| =m/0'= | The first child private key of the master key (hardened derivation) |
-| =M/1=  | The second child public key of the master key (normal derivation)   |
+- HD path :: A HD path uniquely identifies an extended private or public key in
+  the hierarchy of derived keys of a HD wallet. A HD path starts from either a
+  master private key =m= or a master public key =M= and indicates the derivation
+  path by appending derivation segments in the form =/index= for the normal
+  derivation or in the form =/index'= for hardened derivation. The indices for
+  hardened derivation start from 2^{31}, so this number is automatically added
+  to the index of a hardened key e.g. =/0'= means 0 + 2^{31}. Each segment in a
+  HD path represents the next level in the hierarchy of keys and increments the
+  depth by one
+| HD path | Description                                                         |
+|---------+---------------------------------------------------------------------|
+| =m/0'=  | The first child private key of the master key (hardened derivation) |
+| =M/1=   | The second child public key of the master key (normal derivation)   |
 
 *** Encoding and decoding of extended keys
 
 - Encoding of extended keys :: A 64 bytes concatenation of a 32 bytes private or
-  public key with a 32 bytes chain code is called an extended private or public
-  key respectively and difficult to manage by humans. A 128 bytes hex
-  representation of a 64 bytes extended key is quite large. An encoded extended
-  key includes in order a version byte indicating whether the key is private or
-  public, a depth of the key from the master, a fingerprint of the compressed
-  parent public key, the index of the key from a parent, the chain code, the
-  private key prefixed with the =0x00= prefix, or the compressed public key, and
-  the error detecting checksum. A 82 bytes concatenation of the above fields in
-  order is encoded using the base58 encoding. The base58 encoding of an extended
-  key is less error prone and represents an extended key in a way that humans
-  can manage more easily. Along with a prefixed private or a compressed public
-  key and the corresponding chain code, an encoded extended key includes the
-  following fields in order
+  public key with a 32 bytes chain code is called the extended private key or
+  the extended public key respectively. Extended keys are difficult to manage by
+  humans. A 128 bytes hex representation of a 64 bytes extended key is quite
+  large. An encoded extended key includes in order a version indicating whether
+  the key is a private key or a public key, a depth of the key from the master
+  key, a hash of the compressed parent public key, an index of the key from a
+  parent key, a chain code, a private key prefixed with the =0x00= prefix, or a
+  compressed public key, and the error detecting checksum. A 82 bytes
+  concatenation of the above fields in order is encoded using the base58
+  encoding. The base58 encoding of an extended key is less error prone and
+  represents an extended key in a way that humans can manage more easily. Along
+  with a prefixed private or a compressed public key and the corresponding chain
+  code, an encoded extended key includes the following fields in order
 | Field      | Size     | Description                                                 |
 |------------+----------+-------------------------------------------------------------|
-| Version    | 4 bytes  | Private key: version =0x0488ade4=, encoded prefix =xprv=    |
-|            |          | Public key: version =0x0488b21e=, encoded prefix =xpub=     |
-| Depth      | 1 byte   | Depth of a key from the master                              |
+| Version    | 4 bytes  | Private key version =0x0488ade4=, encoded prefix =xprv=     |
+|            |          | Public key version =0x0488b21e=, encoded prefix =xpub=      |
+| Depth      | 1 byte   | Depth of a key from the master key                          |
 | Parent     | 4 bytes  | First 4 bytes of the hash of a compressed parent public key |
-| Index      | 4 bytes  | Index of a key from the parent                              |
+| Index      | 4 bytes  | Index of a key from the parent key                          |
 | Chain Code | 32 bytes | Chain code                                                  |
 | Key        | 33 bytes | Private key prefixed with the =0x00= prefix                 |
 |            |          | Compressed public key                                       |
@@ -254,15 +255,15 @@ func NewExtPubKey(
 
 *** Seed derive
 
-- Seed derive :: The =SeedDerive= function takes a mnemonic as data and a
-  passphrase as a salt and produces a 512 bits seed by applying the
+- Seed derive :: The =SeedDerive= function takes a mnemonic as a password and an
+  optional passphrase as a salt and produces a 512 bits seed by applying the
   PBKDF2-SHA512 key derivation function to the data and the salt with 2048
   iterations of the HMAC-SHA512 message authentication code function. The seed
   derive function
   - Create a salt by prepending a fixed "mnemonic" string to the passphrase
   - Produce a 512 bits seed by applying the PBKDF2-SHA512 key derivation
-    function using the mnemonic as data, the salt, and 2048 iterations of the
-    HMAC-SHA512 message authentication code function
+    function using the mnemonic as a password, the salt, and 2048 iterations of
+    the HMAC-SHA512 message authentication code function
   #+BEGIN_SRC go
 func SeedDerive(mnemonic, passphrase string) []byte {
   salt := []byte("mnemonic" + passphrase)
@@ -273,8 +274,7 @@ func SeedDerive(mnemonic, passphrase string) []byte {
 
 *** Master derive
 
-- Master derive :: The =MasterDerive= function takes a 512 bits seed derived
-  from a 128 to 256 bits of entropy and an optional passphrase and derives
+- Master derive :: The =MasterDerive= function takes a 512 bits seed and derives
   extended master private and public keys. The master derive function
   - Produces a 512 bits authenticated hash using the seed as data and a fixed
     "Bitcoin seed" string as a key
@@ -286,18 +286,18 @@ func SeedDerive(mnemonic, passphrase string) []byte {
     with the master chain code is the extended master private key =xprv=
   - A concatenation of the compressed master public key with the master chain
     code is the extended master public key =xpub=
-  #+BEGIN_SRC go
-func MasterDerive(seed []byte) *ExtKey {
-  depth, index := uint8(0), uint32(0)
-  hmac := crypto.HMACSHA512(seed, []byte("Bitcoin seed"))
-  prv, code := hmac[:32], hmac[32:]
-  key := KeyDerive(prv)
-  ekey := &ExtKey{PrvKey: *key, Code: code, Depth: depth, Index: index}
-  ekey.Xprv = EkeyEncode(xprvVer, depth, nil, index, code, prv)
-  ekey.Xpub = EkeyEncode(xpubVer, depth, nil, index, code, ekey.Pubc)
-  return ekey
-}
-  #+END_SRC
+    #+BEGIN_SRC go
+  func MasterDerive(seed []byte) *ExtKey {
+    depth, index := uint8(0), uint32(0)
+    hmac := crypto.HMACSHA512(seed, []byte("Bitcoin seed"))
+    prv, code := hmac[:32], hmac[32:]
+    key := KeyDerive(prv)
+    ekey := &ExtKey{PrvKey: *key, Code: code, Depth: depth, Index: index}
+    ekey.Xprv = EkeyEncode(xprvVer, depth, nil, index, code, prv)
+    ekey.Xpub = EkeyEncode(xpubVer, depth, nil, index, code, ekey.Pubc)
+    return ekey
+  }
+    #+END_SRC
 
 *** Private derive
 
@@ -398,7 +398,7 @@ func HardenedDerive(prve []byte, depth uint8, index uint32) *ExtKey {
 
 - Public derive :: The =PublicDerive= function takes an extended public key, a
   depth of a child key from the master key, an index of a child key from the
-  parent key, and produces a child extended public key. The public derive
+  parent key, and produces an extended child public key. The public derive
   function
   - Split the parent extended public key into a 32 bytes parent public key and
     a 32 bytes parent chain code
@@ -411,64 +411,63 @@ func HardenedDerive(prve []byte, depth uint8, index uint32) *ExtKey {
     public key base by the generator point
   - Add the uncompressed parent public key to the point on the secp256k1
     elliptic curve to derive the child public key
-  - A concatenation of the child private key prefixed with the =0x00= prefix
-    with the child chain code is the extended child private key =xprv=
   - A concatenation of the compressed child public key with the child chain
     code is the extended child public key =xpub=
-  #+BEGIN_SRC go
-func PublicDerive(pube []byte, depth uint8, index uint32) *ExtKey {
-  parPubc, parCode := pube[:33], pube[33:]
-  idx := make([]byte, 4)
-  binary.BigEndian.PutUint32(idx, index)
-  var data bytes.Buffer
-  data.Write(parPubc) // Parent public compressed
-  data.Write(idx)
-  hmac := crypto.HMACSHA512(data.Bytes(), parCode)
-  pb, code := hmac[:32], hmac[32:]
-  pub := new(ecdsa.PublicKey)
-  pub.Curve = ecc.P256k1()
-  pub.X, pub.Y = pub.ScalarBaseMult(pb)
-  parX, parY := ecc.UnmarshalCompressed(ecc.P256k1(), parPubc)
-  pubx, puby := pub.Add(pub.X, pub.Y, parX, parY)
-  ekey := NewExtPubKey(pubx, puby, code, depth, index)
-  ekey.Xpub = EkeyEncode(xpubVer, depth, parPubc, index, code, ekey.Pubc)
-  return ekey
-}
-  #+END_SRC
+    #+BEGIN_SRC go
+  func PublicDerive(pube []byte, depth uint8, index uint32) *ExtKey {
+    parPubc, parCode := pube[:33], pube[33:]
+    idx := make([]byte, 4)
+    binary.BigEndian.PutUint32(idx, index)
+    var data bytes.Buffer
+    data.Write(parPubc) // Parent public compressed
+    data.Write(idx)
+    hmac := crypto.HMACSHA512(data.Bytes(), parCode)
+    pb, code := hmac[:32], hmac[32:]
+    pub := new(ecdsa.PublicKey)
+    pub.Curve = ecc.P256k1()
+    pub.X, pub.Y = pub.ScalarBaseMult(pb)
+    parX, parY := ecc.UnmarshalCompressed(ecc.P256k1(), parPubc)
+    pubx, puby := pub.Add(pub.X, pub.Y, parX, parY)
+    ekey := NewExtPubKey(pubx, puby, code, depth, index)
+    ekey.Xpub = EkeyEncode(xpubVer, depth, parPubc, index, code, ekey.Pubc)
+    return ekey
+  }
+    #+END_SRC
 
 *** Path derive
 
 - Path derive :: The =PathDerive= function takes a mnemonic, an optional
   passphrase, and a HD path, and derives extended private and public keys as
-  specified by the HD path e.g. m/0'/1. The path derive function derives a 512
-  bits seed from the mnemonic and an optional passphrase. Next, the extended
+  specified by the HD path e.g. =m/0'/1=. The path derive function derives a 512
+  bits seed from the mnemonic and the optional passphrase. Next, the extended
   master private and public keys are derived from the seed. Then, the HD path is
   parsed into the derivation segments starting from either the master private
   key =m= or the master public key =M=. Each derivation segment increases by one
   the depth of the child keys from the master key. Each derivation segment
-  indicates the index of the child key from the parent and whether the normal
-  derivation or the hardened derivation marked with the prime ='= symbol has to
-  be used. The path derive function process each segment in order starting from
-  the extended master private or public key derived from the seed, which, in
-  turn, is derived from the mnemonic and an optional passphrase. The extended
-  keys derived from the current derivation segment are used as input to derive
-  child extended keys from the next derivation segment
+  indicates the index of the child key from the parent key and whether the
+  normal derivation or the hardened derivation marked with the prime ='= symbol
+  has to be applied. The path derive function process each segment in order
+  starting from the extended master private or public key derived from the seed,
+  which, in turn, is derived from the mnemonic and the optional passphrase. The
+  extended keys derived of the current derivation segment are used as input to
+  derive child extended keys of the next derivation segment
   - Private derivation :: If a HD path starts from an extended private key =m=,
     then either the normal private derivation =/index= or the hardened private
     derivation =/index'= is possible. The normal private derivation uses the
     compressed parent public key, while the hardened derivation uses the parent
     private key prefixed with the =0x00= prefix. The input for both the normal
     private derivation and the hardened private derivation is the same: an
-    extended parent private key, a depth, and an index of the child private key
+    extended parent private key, a depth of the child from the master key, and
+    an index of the child private key
   - Public derivation :: If a HD path starts from an extended public key =M=,
-    the only the normal public derivation =/index= is possible. The normal
-    public derivation uses only the compressed parent public key. The input for
-    the normal public derivation is an extended parent public key, a depth, and
-    an index fo the child public key
+    only the normal public derivation =/index= is possible. The normal public
+    derivation uses only the compressed parent public key. The input for the
+    normal public derivation is an extended parent public key, a depth, and an
+    index of the child public key
   The path derive function
   - Reject an invalid private =m= or public =M= HD path
-  - Derive a 512 bits seed from the mnemonic and an optional passphrase
-  - Derive extended private and public keys from the seed
+  - Derive a 512 bits seed from the mnemonic and the optional passphrase
+  - Derive the extended private and public keys from the seed
   - For the private derivation
     - Parse the private derivation HD path. For each derivation segment
       - Increase by one the depth of a child key
@@ -476,17 +475,18 @@ func PublicDerive(pube []byte, depth uint8, index uint32) *ExtKey {
       - Perform the hardened derivation if the derivation segment indicates the
         hardened derivation, otherwise perform the private derivation by passing
         the extended parent private key, the depth, and the index in both cases
-      - Use the derived child private key as input to process the next derivation
-        segment
+      - Use the extended child private key as input to process the next
+        derivation segment
+      - Return the final extended private key
   - For the public derivation
     - Parse the public derivation HD path. For each derivation segment
       - Increase by one the depth of a child key
       - Parse the index of a child key
       - Perform the public derivation by passing the extended parent public key,
         the depth, and the index
-      - Use the derived child public key as input to process the next derivation
-        segment
-  - Return the final extended private or public key
+      - Use the extended child public key as input to process the next
+        derivation segment
+      - Return the final extended public key
   #+BEGIN_SRC go
 func PathDerive(mnemonic, passphrase, path string) (*ExtKey, error) {
   if !rePrvPath.MatchString(path) && !rePubPath.MatchString(path) {
@@ -525,22 +525,23 @@ func PathDerive(mnemonic, passphrase, path string) (*ExtKey, error) {
   indicating either a private or a public key has to be encoded, a depth of the
   key from the master key, a compressed parent public key, or a hash of a
   compressed parent key, or =nil= for a master key, an index of the key from the
-  parent key, a chain code, a private key or a compressed public key, appends an
-  error detecting checksum, and base58 encodes the extended key including all
-  the above key information. The extended key encode function
+  parent key, a chain code, a private key, or a compressed public key, appends
+  an error detecting checksum, and base58 encodes the extended key including all
+  the above fields. The extended key encode function
   - Write the 4 bytes version indicating whether a private or a public key has
     to be encoded
   - Write the 1 byte depth of the key from the master key
   - Write the first 4 bytes of the hash of the compressed parent public key. The
-    parent hash is the combination of ~RIPEMD160(SHA256(parent.pubc))~. The
-    parent has of a master key is =0x00000000=
+    parent hash is a combination of the SHA256 and the RIPEMD160 hash functions
+    applied in this order to the compressed parent public key. The parent hash
+    of a master key is =0x00000000=
   - Write the 4 bytes index of the key from the parent key
   - Write either the 33 bytes private key prefixed with the =0x00= prefix or the
     33 bytes compressed public key
   - Write the first 4 bytes of the error detecting checksum. The hash of the
     error detecting checksum is the double SHA256 hash of the above data
-  - Base58 encode the 82 bytes data including the checksum
-  - Return the base58 encoded extended private or public key
+  - Base58 encode the 82 bytes resulting data including the checksum
+  - Return the base58 encoded extended private key or the extended public key
   #+BEGIN_SRC go
 func EkeyEncode(
   version []byte, depth uint8, parent []byte, index uint32, code, key []byte,
@@ -575,7 +576,7 @@ func EkeyEncode(
 *** Extended key decode
 
 - Extended key decode :: The =EkeyDecode= function takes an encoded extended
-  private or public key and decodes the key into an extended private or public
+  private or public key and decodes the key into the extended private or public
   key, the depth of the key from the master key, and the index of the key from
   the parent key. The extended key decode function checks the embedded error
   detecting checksum and rejects invalid keys. The extended key decode function
@@ -587,8 +588,8 @@ func EkeyEncode(
   - Parse the 4 bytes hash of the compressed parent public key
   - Parse the 4 bytes index of the key from the parent key
   - Parse the 32 bytes chain code
-  - Parse either the 33 bytes private key prefixed with the =0x00= prefix or the
-    33 bytes compressed public key
+  - Parse either the 33 bytes private key prefixed with the =0x00= prefix, or
+    the 33 bytes compressed public key
   - Return either the extended private key or the extended public key
   #+BEGIN_SRC go
 func EkeyDecode(str string) (*ExtKey, error) {
@@ -633,8 +634,9 @@ go build -o wallet; ./hdwallet/cli-test.nu
 
 *** Using =hd seed= and =hd master private hardened public= CLI commands
 
-Show the help and usage instructions of the =wallet mnemonic= command
+Show the help and usage instructions of the =wallet hd= command
 #+BEGIN_SRC nushell
+./wallet hd
 # NAME:
 #    wallet hd - Derive extended master and child private and public keys
 
@@ -696,8 +698,8 @@ print $mst
 # ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
 #+END_SRC
 
-Pass the extended private key to the private derivation to derive the extended
-private and public keys of the depth 1 and the index 0.
+Pass the extended master private key to the private derivation to derive the
+extended private and public keys of the depth 1 and the index 0
 #+BEGIN_SRC nushell
 let prve = $mst.prv ++ $mst.code
 let prv = $prve | wallet hd private --depth 1 --index 0 | from yaml
@@ -717,8 +719,8 @@ print $prv
 # ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
 #+END_SRC
 
-Pass the extended private key to the hardened derivation to derive the hardened
-extended private and public keys of the depth 1 and the index 0. Note,
+Pass the extended master private key to the hardened derivation to derive the
+hardened extended private and public keys of the depth 1 and the index 0. Note,
 that the keys from the private derivation and the keys from the hardened
 derivation are different. Also note, that the index of the hardened key starts
 from 2^{31}
@@ -740,10 +742,10 @@ print $hrd
 # ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
 #+END_SRC
 
-Pass the extended public key to the public derivation to derive the extended
-public key of the depth 1 and the index 0. Note, that the extended public key of
-the public derivation is eqaul to the extended public key of the private
-derivation
+Pass the extended master public key to the public derivation to derive the
+extended public key of the depth 1 and the index 0. Note, that the extended
+public key of the public derivation is equal to the extended public key of the
+private derivation
 #+BEGIN_SRC nushell
 let pube = $mst.pubc ++ $mst.code
 let pub = $pube | wallet hd public --depth 1 --index 0 | from yaml
@@ -758,6 +760,23 @@ print $pub
 # │ xpub  │ xpub69eHoix16pWaz5hUDSSsihv4JuTUmxgBmRjLoc2Bu5KToVmDWV2qk83aakBDKfAibMs9Jo1viGnXL │
 # │       │ YvhZam76iKVz1RJc4k2ZPnp19A7qq7                                                    │
 # ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
+#+END_SRC
+
+Keccak256 hash a "transaction". ECDSA sign the hash with the private key derived
+using the private derivation. Verify the signature using the public key derived
+using the public derivation. Confirm that that signature is valid, while the
+private signing key and the public verifying keys have been derived using
+different derivation paths: the private derivation and the public derivation
+#+BEGIN_SRC nushell
+let hash = "transaction" | wallet keccak256
+print $hash
+# bb2a99297e1d12a9b91d4f90d5dd4b160d93c84a9e3b4daa916fec14ec852e05
+let sig = $hash | wallet ecdsa sign --prv $prv.prv
+print $sig
+# 21cabdea3a37e5642b16e0e345446de3fcebf46829bf2d39e2611d34c38925ea1ce624c827614a7e20e7018142f9afcfed413fa8408920d5cfac2c5cb62edc3d00
+let valid = $hash | wallet ecdsa verify --sig $sig --pub $pub.pubc | into bool
+print $valid
+# true
 #+END_SRC
 
 *** Using =hd path= CLI commands
@@ -788,9 +807,9 @@ print $prv
 # ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
 #+END_SRC
 
-Pass the mnemonic along with an optional passphrase and a HD path =m/1'/2/3= to
+Pass the mnemonic along with the optional passphrase and a HD path =m/1'/2/3= to
 derive the extended private and public keys using the hardened derivation for
-the first derivation segment and using the private derivation for the other
+the first derivation segment and using the private derivation for the next two
 derivation segments. Note, that even a single hardened derivation derives
 completely different keys
 #+BEGIN_SRC nushell
@@ -812,7 +831,7 @@ print $hrd
 # ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
 #+END_SRC
 
-Pass the mnemonic along with an optional passphrase and a HD path =m/1/2/3= to
+Pass the mnemonic along with the optional passphrase and a HD path =M/1/2/3= to
 derive the extended public key using the public derivation. Note, that the
 extended public key of the public derivation is equal to the extended public key
 of the private derivation, as the HD path is the same, however derivation
@@ -862,7 +881,7 @@ print $key
 #+END_SRC
 
 Decode the encoded private key =xprv= of the extended private key. Note, that
-the decode private key is equal to the extended private key
+the decoded private key is equal to the extended private key
 #+BEGIN_SRC nushell
 let prv = $key.xprv | wallet hd decode | from yaml
 print $prv
@@ -882,7 +901,7 @@ print $prv
 #+END_SRC
 
 Decode the encoded public key =xpub= of the extended public key. Note, that
-the decode public key is equal to the extended public key
+the decoded public key is equal to the extended public key
 #+BEGIN_SRC nushell
 let pub = $key.xpub | wallet hd decode | from yaml
 print $pub

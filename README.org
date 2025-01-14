@@ -6,7 +6,7 @@
 
 ** Contents
 
-*** Secp256k1 keys and signatures
+*** Secp256k1 keys and ECDSA signatures
 
 - [[/key/secp256k1.org][Secp256k1 keys and ECDSA signatures]]
 
@@ -19,3 +19,97 @@
 
 - [[/key/address.org][ERC-55 Ethereum address encoding]]
 - [[/crypto/base58.org][Base58 and base58check encoding]]
+
+** Usage examples
+
+*** Manual derivation of HD wallet keys
+
+#+BEGIN_SRC nushell
+let mnem = wallet mnemonic generate --bits 128
+print $mnem
+# flash raw fee bag click enlist worth vault group expand blade another
+let seed = $mnem | wallet hd seed --passphrase "secret"
+let mst = $seed | wallet hd master | from yaml
+let prve = $mst.prv ++ $mst.code
+let prv = $prve | wallet hd private --depth 1 --index 0 | from yaml
+print $prv
+# ╭───────┬───────────────────────────────────────────────────────────────────────────────────╮
+# │ prv   │ 3473c33a0fc0cacdc40d6567654ae24ee613328318720380313606dd4d2463b9                  │
+# │ pub   │ 04514e90dd323ac49aa167996e29e0378155ce715058af1cc96c60804f54f46d9f770b92cbf05b501 │
+# │       │ ed3fdc2380babacc42fae362ab2f8ee31276a3d0493326541                                 │
+# │ pubc  │ 03514e90dd323ac49aa167996e29e0378155ce715058af1cc96c60804f54f46d9f                │
+# │ code  │ a0ef0e320e0f27b5b78f32da8acc0ebce26567cba2b73b8e98114b3ceb2460c9                  │
+# │ depth │ 1                                                                                 │
+# │ index │ 0                                                                                 │
+# │ xprv  │ xprv9vDebLNmPshkxU9z269BmQereRSQTWGYbBE3i5Jj9cFAWi9jbFQPx6ZYevmAASYYpqpKA7MPhH7QP │
+# │       │ UHzeYkgvzGmoYFKwxtonrPVaE15exs                                                    │
+# │ xpub  │ xpub69CzzqufEFG4AxET87gC8YbbCTGtrxzPxQ9eWTiLhwn9PWUt8nieVtt2WDxNqUggVLpF4YwsEVNWx │
+# │       │ 3wFDNcJLweyG2J9QvRYSxbPiw8gE6C                                                    │
+# ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
+let pube = $mst.pubc ++ $mst.code
+let pub = $pube | wallet hd public --depth 1 --index 0 | from yaml
+print $pub
+# ╭───────┬───────────────────────────────────────────────────────────────────────────────────╮
+# │ pub   │ 04514e90dd323ac49aa167996e29e0378155ce715058af1cc96c60804f54f46d9f770b92cbf05b501 │
+# │       │ ed3fdc2380babacc42fae362ab2f8ee31276a3d0493326541                                 │
+# │ pubc  │ 03514e90dd323ac49aa167996e29e0378155ce715058af1cc96c60804f54f46d9f                │
+# │ code  │ a0ef0e320e0f27b5b78f32da8acc0ebce26567cba2b73b8e98114b3ceb2460c9                  │
+# │ depth │ 1                                                                                 │
+# │ index │ 0                                                                                 │
+# │ xpub  │ xpub69CzzqufEFG4AxET87gC8YbbCTGtrxzPxQ9eWTiLhwn9PWUt8nieVtt2WDxNqUggVLpF4YwsEVNWx │
+# │       │ 3wFDNcJLweyG2J9QvRYSxbPiw8gE6C                                                    │
+# ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
+let hash = "transaction" | wallet keccak256
+print $hash
+# bb2a99297e1d12a9b91d4f90d5dd4b160d93c84a9e3b4daa916fec14ec852e05
+let sig = $hash | wallet ecdsa sign --prv $prv.prv
+print $sig
+# 1a070e36ff7e6a6e246cce1c965fffa99026f3c6379bc728b2e7d8b6000a7eef74c05edae71e287f58f7cfa123df4ed417e5c63356e55cb446bf207d6bd5ffa500
+let valid = $hash | wallet ecdsa verify --sig $sig --pub $pub.pubc | into bool
+print $valid
+# true
+#+END_SRC
+
+*** HD path-based derivation of HD wallet keys
+
+#+BEGIN_SRC nushell
+let mnem = wallet mnemonic generate --bits 128
+print $mnem
+# paper arrest secret test practice invite century hint banana toy pigeon charge
+let prv = $mnem | wallet hd path --passphrase "secret" --path "m/1/2/3" | from yaml
+print $prv
+# ╭───────┬───────────────────────────────────────────────────────────────────────────────────╮
+# │ prv   │ 629cee90e0d3ab93d44279b03225d68af382d6a7b03e4e6c36093800d2a20289                  │
+# │ pub   │ 04ffed137a51a57896cd3cc9c8f033c256db247629f711289a1d31906ecde784520da0275c282c11b │
+# │       │ 53d2336e799be20e4a9e94f031f7fe3cae46a9c39a93fc9e0                                 │
+# │ pubc  │ 02ffed137a51a57896cd3cc9c8f033c256db247629f711289a1d31906ecde78452                │
+# │ code  │ cfba86accb93a3cea527958dbf60c80ebd6f635f582c785cc38d0ce57e681638                  │
+# │ depth │ 3                                                                                 │
+# │ index │ 3                                                                                 │
+# │ xprv  │ xprv9yTk3ykRNRDwMCVxZMFXRHu8caPf6Fp5euK6WB77BbESx8TzQKWCgZroY1UX1BvoKHeNcnDWY5RMy │
+# │       │ keruxL4pB92VMh6J7rEe69mn1WT8TN                                                    │
+# │ xpub  │ xpub6CT6TVHKCnnEZgaRfNnXnRqsAcE9ViXw28EhJZWijvmRpvo8wrpTENBHPHhZoBxD6jVmBuJC4U2iA │
+# │       │ e1hqFpDkKrf3pHTsgtRs4XWhejVNT9                                                    │
+# ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
+let pub = $mnem | wallet hd path --passphrase "secret" --path "M/1/2/3" | from yaml
+print $pub
+# ╭───────┬───────────────────────────────────────────────────────────────────────────────────╮
+# │ pub   │ 04ffed137a51a57896cd3cc9c8f033c256db247629f711289a1d31906ecde784520da0275c282c11b │
+# │       │ 53d2336e799be20e4a9e94f031f7fe3cae46a9c39a93fc9e0                                 │
+# │ pubc  │ 02ffed137a51a57896cd3cc9c8f033c256db247629f711289a1d31906ecde78452                │
+# │ code  │ cfba86accb93a3cea527958dbf60c80ebd6f635f582c785cc38d0ce57e681638                  │
+# │ depth │ 3                                                                                 │
+# │ index │ 3                                                                                 │
+# │ xpub  │ xpub6CT6TVHKCnnEZgaRfNnXnRqsAcE9ViXw28EhJZWijvmRpvo8wrpTENBHPHhZoBxD6jVmBuJC4U2iA │
+# │       │ e1hqFpDkKrf3pHTsgtRs4XWhejVNT9                                                    │
+# ╰───────┴───────────────────────────────────────────────────────────────────────────────────╯
+let hash = "transaction" | wallet keccak256
+print $hash
+# bb2a99297e1d12a9b91d4f90d5dd4b160d93c84a9e3b4daa916fec14ec852e05
+let sig = $hash | wallet ecdsa sign --prv $prv.prv
+print $sig
+# 63bc11a93095a9a0d84fa26088214a442af2a17aae73b6f6911307c5e9f96e8843808f193e6e6add3c24e4bcafe05440b190ab4fb41e9ccd77c9d22345aa417700
+let valid = $hash | wallet ecdsa verify --sig $sig --pub $pub.pubc | into bool
+print $valid
+# true
+#+END_SRC
