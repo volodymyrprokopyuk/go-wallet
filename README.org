@@ -1,4 +1,4 @@
-* HD wallet in Go
+* BIP-32 HD wallet in Go
 
 ** Abstract
 
@@ -45,6 +45,11 @@ working of a HD wallet.
 - [[/crypto/base58.org][Base58 and base58check encoding]]
 
 ** Usage examples
+
+Detailed explanations of the implementation of every Go function with usage
+examples for every wallet CLI command are in the corresponding sections of the
+documentation above. Below are just two examples to show what is possible with
+the wallet CLI and the underlying go library
 
 *** Manual derivation of HD wallet keys
 
