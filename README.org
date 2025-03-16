@@ -2,14 +2,14 @@
 
 ** Abstract
 
-A guided design and implementation of a HD wallet in Go with a convenient CLI
-for easy experimentation using Nushell (or any other shell). The wallet CLI
+A guided design and implementation of a BIP-32 HD wallet in Go with a convenient
+CLI for easy experimentation using Nushell (or any other shell). The wallet CLI
 exposes an easy to use and experiment CLI tools to generate BIP-39 mnemonics for
 a HD wallet, derive extended private and public keys for a BIP-32 HD wallet,
 encode and decode derived keys into different formats e.g. =xprv=, =xpub=. The
 wallet CLI also provides tools to generate secp256k1 key pairs, ESDSA sign
 transactions and verify signatures. The wallet CLI exposes tools to encode and
-decode data using the bsae58 and base58check encoding, as well as encode an
+decode data using the base58 and base58check encoding, as well as encode an
 Ethereum address using the ERC-55 address encoding.
 
 The modular design of the wallet CLI commands and the underlying Go library
